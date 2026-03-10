@@ -3,6 +3,7 @@ import { useAuth } from '@workos-inc/authkit-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/layouts/AppLayout';
 import { VehiclesPage } from '@/pages/VehiclesPage';
+import { AdminPage } from '@/pages/AdminPage';
 
 function SignInButton() {
   const { signIn } = useAuth();
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Navigate to="/vehicles" replace />} />
               <Route path="vehicles" element={<VehiclesPage />} />
+              <Route path="admin" element={<AdminPage />} />
               {/* More routes added per chunk */}
               <Route path="*" element={<div className="p-4 text-muted-foreground">Page not found</div>} />
             </Route>
