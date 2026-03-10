@@ -31,6 +31,8 @@ export default function App() {
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Navigate to="/vehicles" replace />} />
               <Route path="vehicles" element={<VehiclesPage />} />
+              {/* Placeholder for VehicleDetailPage — will be replaced in Task 4.2 */}
+              <Route path="vehicles/:id" element={<div className="p-4">Vehicle detail — coming soon</div>} />
               <Route path="admin" element={<AdminPage />} />
               {/* More routes added per chunk */}
               <Route path="*" element={<div className="p-4 text-muted-foreground">Page not found</div>} />

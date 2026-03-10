@@ -10,6 +10,7 @@
 
 import type * as allowlist from "../allowlist.js";
 import type * as myFunctions from "../myFunctions.js";
+import type * as vehicles from "../vehicles.js";
 
 import type {
   ApiFromModules,
@@ -20,6 +21,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   allowlist: typeof allowlist;
   myFunctions: typeof myFunctions;
+  vehicles: typeof vehicles;
 }>;
 
 /**
