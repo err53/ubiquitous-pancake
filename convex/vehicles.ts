@@ -1,6 +1,7 @@
-import { mutation, query, internalQuery } from './_generated/server';
+import { action, mutation, query, internalQuery } from './_generated/server';
 import { v } from 'convex/values';
 import { requireAuth } from './lib/auth';
+import { api, internal } from './_generated/api';
 
 export const list = query({
   args: {},
@@ -70,5 +71,19 @@ export const listElectric = internalQuery({
   },
 });
 
-// TODO: triggerSync action — references internal.ev.sync.syncVehicle which doesn't exist yet.
-// Will be re-added in Chunk 6 when the EV provider module is implemented.
+export const triggerSync = action({
+  args: { vehicleId: v.id('vehicles') },
+  handler: async (ctx, { vehicleId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthenticated');
+    const email = identity.email;
+    if (!email) throw new Error('Identity has no email claim');
+    const vehicle = await ctx.runQuery(api.vehicles.get, { id: vehicleId });
+    if (!vehicle) throw new Error('Vehicle not found');
+    if (!vehicle.vin) throw new Error('Vehicle has no VIN configured');
+    await ctx.runAction(internal.ev.sync.syncVehicle, {
+      vehicleId,
+      vin: vehicle.vin,
+    });
+  },
+});
