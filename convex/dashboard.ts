@@ -1,0 +1,151 @@
+import { query } from './_generated/server';
+import { v } from 'convex/values';
+import { requireAuth } from './lib/auth';
+import { calcCostPerKm, calcDepreciation } from './lib/costCalc';
+
+function buildDailyCosts(
+  sessions: { startedAt: number; cost: number }[],
+  fillUps: { date: number; cost: number }[],
+  maintenance: { date: number; cost: number }[],
+): { date: string; cost: number }[] {
+  const map = new Map<string, number>();
+  const add = (ts: number, cost: number) => {
+    const day = new Date(ts).toISOString().slice(0, 10);
+    map.set(day, (map.get(day) ?? 0) + cost);
+  };
+  sessions.forEach((s) => add(s.startedAt, s.cost));
+  fillUps.forEach((f) => add(f.date, f.cost));
+  maintenance.forEach((m) => add(m.date, m.cost));
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, cost]) => ({ date, cost }));
+}
+
+function getMostRecentEvent(
+  sessions: { startedAt: number; cost: number; odometer?: number | null }[],
+  fillUps: { date: number; cost: number; odometer: number }[],
+) {
+  const candidates = [
+    ...sessions.map((s) => ({
+      date: s.startedAt,
+      cost: s.cost,
+      odometer: s.odometer ?? null,
+      type: 'charge' as const,
+    })),
+    ...fillUps.map((f) => ({
+      date: f.date,
+      cost: f.cost,
+      odometer: f.odometer,
+      type: 'fillup' as const,
+    })),
+  ];
+  return candidates.sort((a, b) => b.date - a.date)[0] ?? null;
+}
+
+export const getVehicleDashboard = query({
+  args: {
+    vehicleId: v.id('vehicles'),
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+  },
+  handler: async (ctx, { vehicleId, from, to }) => {
+    await requireAuth(ctx);
+    const vehicle = await ctx.db.get(vehicleId);
+    if (!vehicle) throw new Error('Vehicle not found');
+
+    // Collect all cost events
+    const [chargingSessions, fillUps, maintenance] = await Promise.all([
+      vehicle.type === 'electric'
+        ? ctx.db
+            .query('chargingSessions')
+            .withIndex('by_vehicle', (q) => q.eq('vehicleId', vehicleId))
+            .collect()
+        : Promise.resolve([]),
+      ctx.db
+        .query('gasFillUps')
+        .withIndex('by_vehicle', (q) => q.eq('vehicleId', vehicleId))
+        .collect(),
+      ctx.db
+        .query('maintenanceRecords')
+        .withIndex('by_vehicle', (q) => q.eq('vehicleId', vehicleId))
+        .collect(),
+    ]);
+
+    // Filter by date range
+    const inRange = <T extends { date?: number; startedAt?: number }>(items: T[]) =>
+      items.filter((i) => {
+        const d = (i as { startedAt?: number }).startedAt ?? (i as { date?: number }).date ?? 0;
+        return (from === undefined || d >= from) && (to === undefined || d <= to);
+      });
+
+    const filteredSessions = inRange(chargingSessions);
+    const filteredFillUps = inRange(fillUps);
+    const filteredMaintenance = inRange(maintenance);
+
+    const operatingCostTotal =
+      filteredSessions.reduce((s, c) => s + c.cost, 0) +
+      filteredFillUps.reduce((s, f) => s + f.cost, 0) +
+      filteredMaintenance.reduce((s, m) => s + m.cost, 0);
+
+    // Odometer range in the selected time window
+    let odometerReadings = await ctx.db
+      .query('odometerReadings')
+      .withIndex('by_vehicle_date', (q) => q.eq('vehicleId', vehicleId))
+      .order('asc')
+      .collect();
+    if (from !== undefined) odometerReadings = odometerReadings.filter((r) => r.date >= from);
+    if (to !== undefined) odometerReadings = odometerReadings.filter((r) => r.date <= to);
+
+    const kmDriven =
+      odometerReadings.length >= 2
+        ? odometerReadings[odometerReadings.length - 1].odometer - odometerReadings[0].odometer
+        : null;
+
+    // Depreciation uses all-time odometer (not range-limited)
+    const latestValuation = await ctx.db
+      .query('marketValuations')
+      .withIndex('by_vehicle', (q) => q.eq('vehicleId', vehicleId))
+      .collect()
+      .then((vs) => (vs.length > 0 ? vs.sort((a, b) => b.date - a.date)[0] : null));
+
+    const allOdometer = await ctx.db
+      .query('odometerReadings')
+      .withIndex('by_vehicle_date', (q) => q.eq('vehicleId', vehicleId))
+      .order('asc')
+      .collect();
+    const totalKm =
+      allOdometer.length >= 2
+        ? allOdometer[allOdometer.length - 1].odometer - allOdometer[0].odometer
+        : 0;
+
+    const depreciation = latestValuation
+      ? calcDepreciation({
+          purchasePrice: vehicle.purchasePrice,
+          purchaseDate: vehicle.purchaseDate,
+          latestValuation: latestValuation.valuationCAD,
+          latestValuationDate: latestValuation.date,
+          kmDrivenTotal: totalKm,
+        })
+      : null;
+
+    const dailyCosts = buildDailyCosts(filteredSessions, filteredFillUps, filteredMaintenance);
+    const mostRecentEvent = getMostRecentEvent(chargingSessions, fillUps);
+
+    const operatingCostPerKm = kmDriven !== null ? calcCostPerKm(operatingCostTotal, kmDriven) : null;
+    const totalCostPerKm =
+      kmDriven !== null && depreciation !== null
+        ? calcCostPerKm(operatingCostTotal + depreciation.totalCAD, kmDriven)
+        : null;
+
+    return {
+      vehicle,
+      kmDriven,
+      operatingCostTotal,
+      operatingCostPerKm,
+      depreciation,
+      totalCostPerKm,
+      dailyCosts,
+      mostRecentEvent,
+    };
+  },
+});

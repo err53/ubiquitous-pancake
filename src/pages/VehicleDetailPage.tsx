@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -8,6 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { FillUpForm } from '@/components/FillUpForm';
 import { MaintenanceForm } from '@/components/MaintenanceForm';
 import { CostEventList } from '@/components/CostEventList';
+import { MetricsPanel } from '@/components/MetricsPanel';
+import { CostChart } from '@/components/CostChart';
+import { TimeRangeSelector } from '@/components/TimeRangeSelector';
+import { OdometerEntry } from '@/components/OdometerEntry';
+import { DepreciationEntry } from '@/components/DepreciationEntry';
+import { getDateRange, type TimeRange } from '@/lib/dates';
+import { cad } from '@/lib/formatters';
+import { format } from 'date-fns';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -20,9 +28,20 @@ export function VehicleDetailPage() {
   const maintenance = useQuery(api.gasData.listMaintenance, { vehicleId });
   const deleteFillUp = useMutation(api.gasData.deleteFillUp);
   const deleteMaintenance = useMutation(api.gasData.deleteMaintenance);
+  const triggerSync = useAction(api.vehicles.triggerSync);
 
   const [fillUpDialog, setFillUpDialog] = useState<'add' | Id<'gasFillUps'> | null>(null);
   const [maintenanceDialog, setMaintenanceDialog] = useState<'add' | Id<'maintenanceRecords'> | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [odometerDialogOpen, setOdometerDialogOpen] = useState(false);
+  const [depreciationDialogOpen, setDepreciationDialogOpen] = useState(false);
+
+  const dateRange = getDateRange(timeRange);
+  const dashboard = useQuery(api.dashboard.getVehicleDashboard, {
+    vehicleId,
+    from: dateRange?.from,
+    to: dateRange?.to,
+  });
 
   if (!vehicle || fillUps === undefined || maintenance === undefined) {
     return <div className="text-muted-foreground">Loading...</div>;
@@ -54,11 +73,26 @@ export function VehicleDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">
-          {vehicle.year} {vehicle.make} {vehicle.model}
-        </h1>
-        <p className="text-sm text-muted-foreground capitalize">{vehicle.type}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            {vehicle.year} {vehicle.make} {vehicle.model}
+          </h1>
+          <p className="text-sm text-muted-foreground capitalize">{vehicle.type}</p>
+        </div>
+        {vehicle.type === 'electric' && vehicle.vin && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void triggerSync({ vehicleId }).catch((err: unknown) => {
+                toast.error(err instanceof Error ? err.message : 'Sync failed');
+              });
+            }}
+          >
+            Sync EV Data
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="dashboard">
@@ -68,8 +102,56 @@ export function VehicleDetailPage() {
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dashboard" className="mt-4">
-          <p className="text-muted-foreground">Dashboard coming soon...</p>
+        <TabsContent value="dashboard" className="mt-4 space-y-6">
+          <div className="flex items-center justify-between">
+            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setOdometerDialogOpen(true)}>
+                Add Odometer
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setDepreciationDialogOpen(true)}>
+                Add Valuation
+              </Button>
+            </div>
+          </div>
+          {dashboard === undefined ? (
+            <p className="text-muted-foreground">Loading...</p>
+          ) : (
+            <>
+              <MetricsPanel
+                kmDriven={dashboard.kmDriven}
+                operatingCostTotal={dashboard.operatingCostTotal}
+                operatingCostPerKm={dashboard.operatingCostPerKm}
+                depreciationPerKm={dashboard.depreciation?.perKm ?? null}
+                totalCostPerKm={dashboard.totalCostPerKm}
+              />
+              <CostChart data={dashboard.dailyCosts} />
+              {dashboard.mostRecentEvent && (
+                <div className="rounded-md border p-4 text-sm">
+                  <p className="font-medium">Most recent event</p>
+                  <p className="text-muted-foreground mt-1">
+                    {format(dashboard.mostRecentEvent.date, 'PPP')} ·{' '}
+                    {dashboard.mostRecentEvent.type === 'charge' ? 'Charging session' : 'Fill-up'} ·{' '}
+                    {cad(dashboard.mostRecentEvent.cost)}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+          {/* Odometer dialog */}
+          <Dialog open={odometerDialogOpen} onOpenChange={(open) => { if (!open) setOdometerDialogOpen(false); }}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Odometer Reading</DialogTitle></DialogHeader>
+              <OdometerEntry vehicleId={vehicleId} onSuccess={() => setOdometerDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+          {/* Depreciation dialog */}
+          <Dialog open={depreciationDialogOpen} onOpenChange={(open) => { if (!open) setDepreciationDialogOpen(false); }}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Market Valuation</DialogTitle></DialogHeader>
+              <DepreciationEntry vehicleId={vehicleId} onSuccess={() => setDepreciationDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {vehicle.type === 'gas' && (
