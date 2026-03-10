@@ -9,13 +9,13 @@ A vehicle operating cost tracker for a small group of Canadian users. Tracks cos
 ## Commands
 
 ```bash
-npm run dev          # Start both frontend (Vite) and Convex backend in parallel
-npm run dev:frontend # Vite dev server only (localhost:5173)
-npm run dev:backend  # Convex local backend only
-npm run build        # tsc -b && vite build (full type check + bundle)
-npm run lint         # TypeScript + ESLint (strict, warnings-as-errors)
-npm run format       # Prettier formatting
-npm run preview      # Preview production build
+bun run dev          # Start both frontend (Vite) and Convex backend in parallel
+bun run dev:frontend # Vite dev server only (localhost:5173)
+bun run dev:backend  # Convex local backend only
+bun run build        # tsc -b && vite build (full type check + bundle)
+bun run lint         # TypeScript + ESLint (strict, warnings-as-errors)
+bun run format       # Prettier formatting
+bun run preview      # Preview production build
 ```
 
 ## Architecture
