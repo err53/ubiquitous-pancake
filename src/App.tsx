@@ -31,6 +31,7 @@ export default function App() {
               <Route index element={<Navigate to="/vehicles" replace />} />
               <Route path="vehicles" element={<VehiclesPage />} />
               {/* More routes added per chunk */}
+              <Route path="*" element={<div className="p-4 text-muted-foreground">Page not found</div>} />
             </Route>
           </Routes>
         </BrowserRouter>
