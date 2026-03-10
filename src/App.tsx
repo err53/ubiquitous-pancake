@@ -6,6 +6,7 @@ import { VehiclesPage } from '@/pages/VehiclesPage';
 import { VehicleDetailPage } from '@/pages/VehicleDetailPage';
 import { AdminPage } from '@/pages/AdminPage';
 import { ComparisonPage } from '@/pages/ComparisonPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 function SignInButton() {
   const { signIn } = useAuth();
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="vehicles/:id" element={<VehicleDetailPage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="compare" element={<ComparisonPage />} />
+              <Route path="settings" element={<SettingsPage />} />
               {/* More routes added per chunk */}
               <Route path="*" element={<div className="p-4 text-muted-foreground">Page not found</div>} />
             </Route>
