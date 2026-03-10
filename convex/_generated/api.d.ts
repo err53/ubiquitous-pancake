@@ -9,6 +9,7 @@
  */
 
 import type * as allowlist from "../allowlist.js";
+import type * as gasData from "../gasData.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as vehicles from "../vehicles.js";
@@ -21,6 +22,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   allowlist: typeof allowlist;
+  gasData: typeof gasData;
   "lib/auth": typeof lib_auth;
   myFunctions: typeof myFunctions;
   vehicles: typeof vehicles;
