@@ -2,6 +2,19 @@ import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { requireAdmin } from './lib/auth';
 
+export const getMyRole = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.email) return null;
+    const entry = await ctx.db
+      .query('allowlist')
+      .withIndex('by_email', (q) => q.eq('email', identity.email!))
+      .unique();
+    return entry ? { isAdmin: entry.isAdmin } : null;
+  },
+});
+
 export const list = query({
   args: {},
   handler: async (ctx) => {

@@ -3,6 +3,7 @@ import { api } from '../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function AdminPage() {
   const entries = useQuery(api.allowlist.list);
@@ -10,10 +11,28 @@ export function AdminPage() {
   const remove = useMutation(api.allowlist.remove);
   const [email, setEmail] = useState('');
 
+  if (entries === undefined) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold">Email Allowlist</h1>
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   const handleAdd = async () => {
     if (!email) return;
-    await add({ email, isAdmin: false });
-    setEmail('');
+    if (!email.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    try {
+      await add({ email, isAdmin: false });
+      setEmail('');
+      toast.success('Email added to allowlist');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add email');
+    }
   };
 
   return (
@@ -39,7 +58,7 @@ export function AdminPage() {
           </tr>
         </thead>
         <tbody>
-          {entries?.map((e) => (
+          {entries.map((e) => (
             <tr key={e._id} className="border-b">
               <td className="py-2">{e.email}</td>
               <td className="text-center py-2">{e.isAdmin ? 'Yes' : 'No'}</td>
@@ -47,7 +66,11 @@ export function AdminPage() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => void remove({ id: e._id })}
+                  onClick={() => {
+                    remove({ id: e._id }).catch((err: unknown) => {
+                      toast.error(err instanceof Error ? err.message : 'Failed to remove email');
+                    });
+                  }}
                 >
                   Remove
                 </Button>
