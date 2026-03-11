@@ -7,9 +7,11 @@ import { toast } from 'sonner';
 
 export function AdminPage() {
   const entries = useQuery(api.allowlist.list);
+  const myIdentity = useQuery(api.allowlist.getMyIdentity);
   const add = useMutation(api.allowlist.add);
   const remove = useMutation(api.allowlist.remove);
   const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
 
   if (entries === undefined) {
     return (
@@ -27,8 +29,9 @@ export function AdminPage() {
       return;
     }
     try {
-      await add({ email, isAdmin: false });
+      await add({ email, subject: subject || undefined, isAdmin: false });
       setEmail('');
+      setSubject('');
       toast.success('Email added to allowlist');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add email');
@@ -38,12 +41,26 @@ export function AdminPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Email Allowlist</h1>
-      <div className="flex gap-2">
+      {myIdentity && (
+        <div className="text-sm bg-muted/50 rounded p-3 space-y-1">
+          <p className="font-medium">Your identity</p>
+          <p className="text-muted-foreground">WorkOS User ID: <code className="font-mono">{myIdentity.subject}</code></p>
+          {myIdentity.email && <p className="text-muted-foreground">Email: {myIdentity.email}</p>}
+        </div>
+      )}
+      <div className="flex gap-2 flex-wrap">
         <Input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="user@example.com"
           onKeyDown={(e) => e.key === 'Enter' && void handleAdd()}
+          className="w-64"
+        />
+        <Input
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="WorkOS User ID (optional)"
+          className="w-72"
         />
         <Button onClick={() => void handleAdd()} disabled={!email}>
           Add
@@ -53,6 +70,7 @@ export function AdminPage() {
         <thead>
           <tr className="border-b">
             <th className="text-left py-2">Email</th>
+            <th className="text-left py-2">WorkOS User ID</th>
             <th className="py-2">Admin</th>
             <th></th>
           </tr>
@@ -61,6 +79,7 @@ export function AdminPage() {
           {entries.map((e) => (
             <tr key={e._id} className="border-b">
               <td className="py-2">{e.email}</td>
+              <td className="py-2 font-mono text-xs text-muted-foreground">{e.subject ?? '—'}</td>
               <td className="text-center py-2">{e.isAdmin ? 'Yes' : 'No'}</td>
               <td className="text-right py-2">
                 <Button

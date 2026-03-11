@@ -4,10 +4,13 @@ import { v } from 'convex/values';
 export default defineSchema({
   // Auth
   allowlist: defineTable({
-    email: v.string(),
+    email: v.string(), // display label (WorkOS email or admin note)
+    subject: v.optional(v.string()), // WorkOS User ID (sub claim) for reliable lookup
     isAdmin: v.boolean(),
     addedAt: v.number(), // Unix ms
-  }).index('by_email', ['email']),
+  })
+    .index('by_email', ['email'])
+    .index('by_subject', ['subject']),
 
   // Vehicles
   vehicles: defineTable({

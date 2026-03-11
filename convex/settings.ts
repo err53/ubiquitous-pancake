@@ -36,11 +36,11 @@ export const updateCredential = internalMutation({
   },
 });
 
-// Internal: check user role by email
+// Internal: check user role by WorkOS user ID (subject)
 export const getUserRole = internalQuery({
-  args: { email: v.string() },
-  handler: async (ctx, { email }) => {
-    return ctx.db.query('allowlist').withIndex('by_email', (q) => q.eq('email', email)).unique();
+  args: { subject: v.string() },
+  handler: async (ctx, { subject }) => {
+    return ctx.db.query('allowlist').withIndex('by_subject', (q) => q.eq('subject', subject)).unique();
   },
 });
 
