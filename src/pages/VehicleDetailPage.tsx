@@ -133,6 +133,9 @@ export function VehicleDetailPage() {
                     {format(dashboard.mostRecentEvent.date, 'PPP')} ·{' '}
                     {dashboard.mostRecentEvent.type === 'charge' ? 'Charging session' : 'Fill-up'} ·{' '}
                     {cad(dashboard.mostRecentEvent.cost)}
+                    {dashboard.mostRecentEvent.odometer !== null && (
+                      <> · {dashboard.mostRecentEvent.odometer.toLocaleString('en-CA')} km</>
+                    )}
                   </p>
                 </div>
               )}
