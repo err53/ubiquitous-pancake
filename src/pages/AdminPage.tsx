@@ -2,6 +2,8 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -16,8 +18,8 @@ export function AdminPage() {
   if (entries === undefined) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold">Email Allowlist</h1>
-        <p className="text-muted-foreground">Loading...</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Email Allowlist</h1>
+        <p className="text-muted-foreground text-sm">Loading…</p>
       </div>
     );
   }
@@ -39,65 +41,100 @@ export function AdminPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Email Allowlist</h1>
-      {myIdentity && (
-        <div className="text-sm bg-muted/50 rounded p-3 space-y-1">
-          <p className="font-medium">Your identity</p>
-          <p className="text-muted-foreground">WorkOS User ID: <code className="font-mono">{myIdentity.subject}</code></p>
-          {myIdentity.email && <p className="text-muted-foreground">Email: {myIdentity.email}</p>}
-        </div>
-      )}
-      <div className="flex gap-2 flex-wrap">
-        <Input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="user@example.com"
-          onKeyDown={(e) => e.key === 'Enter' && void handleAdd()}
-          className="w-64"
-        />
-        <Input
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          placeholder="WorkOS User ID (optional)"
-          className="w-72"
-        />
-        <Button onClick={() => void handleAdd()} disabled={!email}>
-          Add
-        </Button>
+    <div className="max-w-4xl space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Email Allowlist</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage users who can access this application.</p>
       </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left py-2">Email</th>
-            <th className="text-left py-2">WorkOS User ID</th>
-            <th className="py-2">Admin</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e) => (
-            <tr key={e._id} className="border-b">
-              <td className="py-2">{e.email}</td>
-              <td className="py-2 font-mono text-xs text-muted-foreground">{e.subject ?? '—'}</td>
-              <td className="text-center py-2">{e.isAdmin ? 'Yes' : 'No'}</td>
-              <td className="text-right py-2">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    remove({ id: e._id }).catch((err: unknown) => {
-                      toast.error(err instanceof Error ? err.message : 'Failed to remove email');
-                    });
-                  }}
-                >
-                  Remove
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {myIdentity && (
+        <Card>
+          <CardContent className="pt-5 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Identity</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <code className="text-xs font-mono bg-muted px-2 py-1 rounded text-foreground">
+                {myIdentity.subject}
+              </code>
+              {myIdentity.email && (
+                <span className="text-sm text-muted-foreground">{myIdentity.email}</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-3">
+        <p className="text-sm font-medium">Add user</p>
+        <div className="flex gap-2 flex-wrap">
+          <Input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="user@example.com"
+            onKeyDown={(e) => e.key === 'Enter' && void handleAdd()}
+            className="w-64"
+          />
+          <Input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="WorkOS User ID (optional)"
+            className="w-72"
+          />
+          <Button onClick={() => void handleAdd()} disabled={!email}>
+            Add
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Email</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">WorkOS User ID</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium text-center">Admin</TableHead>
+              <TableHead className="w-24" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {entries.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  No entries yet.
+                </TableCell>
+              </TableRow>
+            ) : (
+              entries.map((e) => (
+                <TableRow key={e._id}>
+                  <TableCell className="font-medium py-3">{e.email}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground py-3">{e.subject ?? '—'}</TableCell>
+                  <TableCell className="text-center py-3">
+                    {e.isAdmin ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/15 text-primary">
+                        Admin
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right py-3">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        remove({ id: e._id }).catch((err: unknown) => {
+                          toast.error(err instanceof Error ? err.message : 'Failed to remove email');
+                        });
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

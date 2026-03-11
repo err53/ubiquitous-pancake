@@ -9,6 +9,22 @@ interface MetricsPanelProps {
   totalCostPerKm: number | null;
 }
 
+function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <Card>
+      <CardHeader className="pb-1">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function MetricsPanel({
   kmDriven,
   operatingCostTotal,
@@ -17,40 +33,15 @@ export function MetricsPanel({
   totalCostPerKm,
 }: MetricsPanelProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">km driven</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{kmDriven !== null ? km(kmDriven) : 'N/A'}</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Operating cost/km</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{cadPerKm(operatingCostPerKm)}</p>
-          <p className="text-xs text-muted-foreground mt-1">{cad(operatingCostTotal)} total</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Depreciation/km</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{cadPerKm(depreciationPerKm)}</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Total cost/km</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{cadPerKm(totalCostPerKm)}</p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <MetricCard label="km driven" value={kmDriven !== null ? km(kmDriven) : 'N/A'} />
+      <MetricCard
+        label="Operating cost/km"
+        value={cadPerKm(operatingCostPerKm)}
+        sub={`${cad(operatingCostTotal)} total`}
+      />
+      <MetricCard label="Depreciation/km" value={cadPerKm(depreciationPerKm)} />
+      <MetricCard label="Total cost/km" value={cadPerKm(totalCostPerKm)} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Authenticated, Unauthenticated } from 'convex/react';
 import { useAuth } from '@workos-inc/authkit-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/layouts/AppLayout';
 import { VehiclesPage } from '@/pages/VehiclesPage';
 import { VehicleDetailPage } from '@/pages/VehicleDetailPage';
@@ -12,12 +13,20 @@ import { AllowlistErrorBoundary } from '@/components/AllowlistErrorBoundary';
 function SignInButton() {
   const { signIn } = useAuth();
   return (
-    <button
-      onClick={() => void signIn()}
-      className="px-4 py-2 rounded-md border-2 bg-primary text-primary-foreground"
-    >
-      Sign in
-    </button>
+    <div className="flex flex-col items-center gap-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+          <svg className="w-6 h-6 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+        </div>
+        <span className="text-2xl font-semibold tracking-tight">CarCosts</span>
+      </div>
+      <p className="text-sm text-muted-foreground">Track your vehicle operating costs</p>
+      <Button size="lg" onClick={() => void signIn()}>
+        Sign in with magic link
+      </Button>
+    </div>
   );
 }
 
