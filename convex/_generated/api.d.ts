@@ -9,7 +9,9 @@
  */
 
 import type * as allowlist from "../allowlist.js";
+import type * as comparison from "../comparison.js";
 import type * as crons from "../crons.js";
+import type * as dashboard from "../dashboard.js";
 import type * as depreciation from "../depreciation.js";
 import type * as ev_provider from "../ev/provider.js";
 import type * as ev_sync from "../ev/sync.js";
@@ -34,7 +36,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   allowlist: typeof allowlist;
+  comparison: typeof comparison;
   crons: typeof crons;
+  dashboard: typeof dashboard;
   depreciation: typeof depreciation;
   "ev/provider": typeof ev_provider;
   "ev/sync": typeof ev_sync;
