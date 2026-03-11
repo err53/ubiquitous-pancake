@@ -7,6 +7,7 @@ import { VehicleDetailPage } from '@/pages/VehicleDetailPage';
 import { AdminPage } from '@/pages/AdminPage';
 import { ComparisonPage } from '@/pages/ComparisonPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { AllowlistErrorBoundary } from '@/components/AllowlistErrorBoundary';
 
 function SignInButton() {
   const { signIn } = useAuth();
@@ -29,6 +30,7 @@ export default function App() {
         </div>
       </Unauthenticated>
       <Authenticated>
+        <AllowlistErrorBoundary>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AppLayout />}>
@@ -43,6 +45,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </AllowlistErrorBoundary>
       </Authenticated>
     </>
   );
