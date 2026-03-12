@@ -8,13 +8,13 @@
 ## Build, Test, and Development Commands
 Use the existing npm scripts:
 
-- `npm run dev` starts Vite and `convex dev` together for full-stack local work.
-- `npm run dev:frontend` runs only the frontend on `localhost:5173`.
-- `npm run dev:backend` runs only the Convex dev server.
-- `npm run build` runs TypeScript project builds and produces the Vite production bundle.
-- `npm run lint` runs `tsc` plus ESLint with zero warnings allowed.
-- `npm run format` applies Prettier across the repo.
-- `npx vitest run` executes the current test suite.
+- `bun dev` starts Vite and `convex dev` together for full-stack local work.
+- `bun dev:frontend` runs only the frontend on `localhost:5173`.
+- `bun dev:backend` runs only the Convex dev server.
+- `bun build` runs TypeScript project builds and produces the Vite production bundle.
+- `bun lint` runs `tsc` plus ESLint with zero warnings allowed.
+- `bun format` applies Prettier across the repo.
+- `bun test` executes the current test suite.
 
 ## Coding Style & Naming Conventions
 Write TypeScript with 2-space indentation-free formatting handled by Prettier defaults; do not hand-format around the formatter. Prettier enforces single quotes, trailing commas, semicolons, and `printWidth: 120`. React components and pages use `PascalCase` file names such as `VehiclesPage.tsx`; helpers and Convex modules use `camelCase` names such as `costCalc.ts`.
