@@ -138,13 +138,12 @@ async function fetchHistoricalRange(market: string, fuelType: FuelType, months: 
 
   const latestAvailableMonth = await getLatestAvailableMonth(market, fuelType);
   const fetchableMonths = requestedMonths.filter((month) => month <= latestAvailableMonth);
-  if (fetchableMonths.length === 0) {
-    return [];
-  }
+  const monthsToFetch =
+    fetchableMonths.length > 0 ? fetchableMonths : [latestAvailableMonth];
 
   const { vectorId } = await getVectorId(market, fuelType);
-  const firstMonth = fetchableMonths[0];
-  const lastMonth = fetchableMonths[fetchableMonths.length - 1];
+  const firstMonth = monthsToFetch[0];
+  const lastMonth = monthsToFetch[monthsToFetch.length - 1];
   const url =
     `https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorByReferencePeriodRange` +
     `?vectorIds=%22${vectorId}%22&startRefPeriod=${firstMonth}&endReferencePeriod=${lastMonth}`;
@@ -156,7 +155,7 @@ async function fetchHistoricalRange(market: string, fuelType: FuelType, months: 
 
   const payload = (await response.json()) as StatCanVectorRangeResponse;
   const points = payload[0]?.object?.vectorDataPoint ?? [];
-  const requestedMonthSet = new Set(fetchableMonths);
+  const requestedMonthSet = new Set(monthsToFetch);
   const rows = points
     .filter((point) => point.refPerRaw && requestedMonthSet.has(point.refPerRaw) && point.value !== undefined)
     .map((point) => ({
@@ -170,7 +169,7 @@ async function fetchHistoricalRange(market: string, fuelType: FuelType, months: 
     }));
 
   const foundMonths = new Set(rows.map((row) => row.month));
-  const missingMonths = fetchableMonths.filter((month) => !foundMonths.has(month));
+  const missingMonths = monthsToFetch.filter((month) => !foundMonths.has(month));
   if (missingMonths.length > 0) {
     throw new Error(`Statistics Canada did not return monthly prices for: ${missingMonths.join(', ')}`);
   }
