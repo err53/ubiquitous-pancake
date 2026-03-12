@@ -20,7 +20,7 @@ import { gasMarkets } from '@/lib/gasMarkets';
 import { getDateRange, type TimeRange } from '@/lib/dates';
 import { cad } from '@/lib/formatters';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export function VehicleDetailPage() {
@@ -39,6 +39,7 @@ export function VehicleDetailPage() {
   const deleteOdometerReading = useMutation(api.odometer.deleteManualReading);
   const deleteValuation = useMutation(api.depreciation.deleteValuation);
   const triggerSync = useAction(api.vehicles.triggerSync);
+  const ensureHistoricalPrices = useAction(api.gasPrices.ensureHistoricalPrices);
 
   const [fillUpDialog, setFillUpDialog] = useState<'add' | Id<'gasFillUps'> | null>(null);
   const [maintenanceDialog, setMaintenanceDialog] = useState<'add' | Id<'maintenanceRecords'> | null>(null);
@@ -52,13 +53,38 @@ export function VehicleDetailPage() {
     from: dateRange?.from,
     to: dateRange?.to,
   });
-  const isEstimatedGasMode = vehicle?.type === 'gas' && (vehicle.fuelCostMode ?? 'manual_fillups') === 'estimated';
+  const isEstimatedGasMode = vehicle?.type === 'gas' && (vehicle.fuelCostMode ?? 'manual_fillups') === 'estimated_historical';
   const gasVehicle = vehicle?.type === 'gas' ? vehicle : null;
+  const usesHistoricalMarketPricing =
+    gasVehicle?.fuelCostMode === 'estimated_historical' && gasVehicle.fuelPriceOverrideMode === 'historical_market';
   const estimatedFuelMarketLabel =
     dashboard?.estimatedFuelPriceMarket === null || dashboard?.estimatedFuelPriceMarket === undefined
       ? null
       : gasMarkets.find((market) => market.key === dashboard.estimatedFuelPriceMarket)?.label ??
         dashboard.estimatedFuelPriceMarket;
+
+  useEffect(() => {
+    if (!usesHistoricalMarketPricing || dashboard === undefined || dashboard.historicalFuelStatus === 'ready') {
+      return;
+    }
+
+    let cancelled = false;
+    void ensureHistoricalPrices({
+      vehicleIds: [vehicleId],
+      from: dateRange?.from,
+      to: dateRange?.to,
+    })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : 'Failed to load historical fuel prices');
+        }
+      })
+      .finally(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard, dateRange?.from, dateRange?.to, ensureHistoricalPrices, usesHistoricalMarketPricing, vehicleId]);
 
   if (!vehicle || fillUps === undefined || maintenance === undefined || odometerReadings === undefined || valuations === undefined) {
     return <div className="text-muted-foreground">Loading...</div>;
@@ -177,6 +203,11 @@ export function VehicleDetailPage() {
                 totalCostPerKm={dashboard.totalCostPerKm}
               />
               {gasVehicle && <GasCostPreferences vehicle={gasVehicle} />}
+              {dashboard.historicalFuelStatus === 'missing_prices' && (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                  Loading historical fuel prices for this date range...
+                </div>
+              )}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-md border p-4 text-sm">
                   <p className="font-medium">Depreciation basis</p>
@@ -187,12 +218,28 @@ export function VehicleDetailPage() {
                       <p>Total depreciation: {cad(dashboard.depreciation?.totalCAD ?? 0)}</p>
                       <p>Monthly depreciation: {cad(dashboard.depreciation?.monthlyCAD ?? 0)}</p>
                       <p>All-time km used: {dashboard.totalKm.toLocaleString('en-CA')} km</p>
-                      {dashboard.fuelCostMode === 'estimated' && dashboard.estimatedFuelPriceCadPerLitre !== null && (
+                      {dashboard.fuelCostMode === 'estimated_historical' && (
                         <p>
-                          Estimated fuel price: {cad(dashboard.estimatedFuelPriceCadPerLitre)} / L
+                          Pricing method:{' '}
+                          {dashboard.estimatedFuelPricingMethod === 'fixed_manual'
+                            ? 'Fixed manual fuel price'
+                            : 'Historical market averages'}
                         </p>
                       )}
-                      {dashboard.fuelCostMode === 'estimated' && estimatedFuelMarketLabel && (
+                      {dashboard.fuelCostMode === 'estimated_historical' &&
+                        dashboard.estimatedFuelManualOverrideCadPerLitre !== null && (
+                          <p>Manual fuel price: {cad(dashboard.estimatedFuelManualOverrideCadPerLitre)} / L</p>
+                        )}
+                      {dashboard.fuelCostMode === 'estimated_historical' &&
+                        dashboard.estimatedFuelLatestCachedPriceCadPerLitre !== null && (
+                          <p>
+                            Latest cached market price: {cad(dashboard.estimatedFuelLatestCachedPriceCadPerLitre)} / L
+                            {dashboard.estimatedFuelLatestCachedMonth && (
+                              <> ({dashboard.estimatedFuelLatestCachedMonth.slice(0, 7)})</>
+                            )}
+                          </p>
+                        )}
+                      {dashboard.fuelCostMode === 'estimated_historical' && estimatedFuelMarketLabel && (
                         <p>Estimated fuel market: {estimatedFuelMarketLabel}</p>
                       )}
                     </div>

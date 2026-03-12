@@ -17,34 +17,35 @@ type GasVehicle = Doc<'vehicles'>;
 export function GasCostPreferences({ vehicle }: { vehicle: GasVehicle }) {
   const updateFuelPreferences = useMutation(api.vehicles.updateFuelPreferences);
   const fetchCanadianAverage = useAction(api.gasPrices.fetchCanadianAverage);
-  const [mode, setMode] = useState<'manual_fillups' | 'estimated'>(vehicle.fuelCostMode ?? 'manual_fillups');
+  const [mode, setMode] = useState<'manual_fillups' | 'estimated_historical'>(vehicle.fuelCostMode ?? 'manual_fillups');
   const [fuelType, setFuelType] = useState<'regular' | 'premium' | 'diesel'>(vehicle.fuelType ?? 'regular');
   const [fuelEfficiency, setFuelEfficiency] = useState(vehicle.fuelEfficiencyLPer100Km ?? 0);
-  const [fuelPrice, setFuelPrice] = useState(vehicle.fuelPriceCadPerLitre ?? 0);
-  const [fuelPriceSource, setFuelPriceSource] = useState<'manual' | 'statcan' | undefined>(vehicle.fuelPriceSource);
-  const [fuelPriceUpdatedAt, setFuelPriceUpdatedAt] = useState<number | undefined>(vehicle.fuelPriceUpdatedAt);
   const [fuelPriceMarket, setFuelPriceMarket] = useState(vehicle.fuelPriceMarket ?? 'canada');
+  const [overrideMode, setOverrideMode] = useState<'historical_market' | 'fixed_manual'>(
+    vehicle.fuelPriceOverrideMode ?? 'historical_market',
+  );
+  const [manualOverridePrice, setManualOverridePrice] = useState(vehicle.fuelPriceManualOverrideCadPerLitre ?? 0);
+  const [previewPrice, setPreviewPrice] = useState<{ priceCadPerLitre: number; effectiveMonth: string; updatedAt: number } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [fetchingPrice, setFetchingPrice] = useState(false);
+  const [fetchingPreview, setFetchingPreview] = useState(false);
 
   useEffect(() => {
     setMode(vehicle.fuelCostMode ?? 'manual_fillups');
     setFuelType(vehicle.fuelType ?? 'regular');
     setFuelEfficiency(vehicle.fuelEfficiencyLPer100Km ?? 0);
-    setFuelPrice(vehicle.fuelPriceCadPerLitre ?? 0);
-    setFuelPriceSource(vehicle.fuelPriceSource);
-    setFuelPriceUpdatedAt(vehicle.fuelPriceUpdatedAt);
     setFuelPriceMarket(vehicle.fuelPriceMarket ?? 'canada');
+    setOverrideMode(vehicle.fuelPriceOverrideMode ?? 'historical_market');
+    setManualOverridePrice(vehicle.fuelPriceManualOverrideCadPerLitre ?? 0);
   }, [vehicle]);
 
   const handleSave = async () => {
-    if (mode === 'estimated') {
+    if (mode === 'estimated_historical') {
       if (fuelEfficiency <= 0) {
         toast.error('Fuel efficiency must be greater than 0');
         return;
       }
-      if (fuelPrice <= 0) {
-        toast.error('Fuel price must be greater than 0');
+      if (overrideMode === 'fixed_manual' && manualOverridePrice <= 0) {
+        toast.error('Manual fuel price must be greater than 0');
         return;
       }
     }
@@ -54,11 +55,12 @@ export function GasCostPreferences({ vehicle }: { vehicle: GasVehicle }) {
       await updateFuelPreferences({
         id: vehicle._id as Id<'vehicles'>,
         fuelCostMode: mode,
-        fuelEfficiencyLPer100Km: mode === 'estimated' ? fuelEfficiency : vehicle.fuelEfficiencyLPer100Km,
-        fuelPriceCadPerLitre: mode === 'estimated' ? fuelPrice : vehicle.fuelPriceCadPerLitre,
-        fuelPriceSource,
-        fuelPriceUpdatedAt,
+        fuelEfficiencyLPer100Km: mode === 'estimated_historical' ? fuelEfficiency : undefined,
         fuelPriceMarket,
+        fuelPriceOverrideMode: overrideMode,
+        fuelPriceManualOverrideCadPerLitre: mode === 'estimated_historical' && overrideMode === 'fixed_manual'
+          ? manualOverridePrice
+          : undefined,
         fuelType,
       });
       toast.success('Fuel preferences updated');
@@ -69,22 +71,23 @@ export function GasCostPreferences({ vehicle }: { vehicle: GasVehicle }) {
     }
   };
 
-  const handleFetchCanadianAverage = async () => {
-    setFetchingPrice(true);
+  const handleFetchPreview = async () => {
+    setFetchingPreview(true);
     try {
       const result = await fetchCanadianAverage({
         market: fuelPriceMarket,
         fuelType,
       });
-
-      setFuelPrice(result.priceCadPerLitre);
-      setFuelPriceSource(result.source);
-      setFuelPriceUpdatedAt(result.updatedAt);
+      setPreviewPrice({
+        priceCadPerLitre: result.priceCadPerLitre,
+        effectiveMonth: result.effectiveMonth,
+        updatedAt: result.updatedAt,
+      });
       toast.success(`Loaded ${result.marketLabel} average for ${result.effectiveMonth.slice(0, 7)}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to fetch Canadian average');
+      toast.error(err instanceof Error ? err.message : 'Failed to fetch market preview');
     } finally {
-      setFetchingPrice(false);
+      setFetchingPreview(false);
     }
   };
 
@@ -96,21 +99,21 @@ export function GasCostPreferences({ vehicle }: { vehicle: GasVehicle }) {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Fuel Cost Mode</Label>
-          <Select value={mode} onValueChange={(value) => setMode(value as 'manual_fillups' | 'estimated')}>
+          <Select value={mode} onValueChange={(value) => setMode(value as 'manual_fillups' | 'estimated_historical')}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="manual_fillups">Manual fill-ups</SelectItem>
-              <SelectItem value="estimated">Estimated from efficiency and gas price</SelectItem>
+              <SelectItem value="estimated_historical">Estimated from historical fuel prices</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Estimated mode disables manual fuel logging and uses odometer distance instead of fill-up costs.
+            Historical estimate mode disables manual fuel logging and derives costs from odometer distance.
           </p>
         </div>
 
-        {mode === 'estimated' && (
+        {mode === 'estimated_historical' && (
           <>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
@@ -153,38 +156,55 @@ export function GasCostPreferences({ vehicle }: { vehicle: GasVehicle }) {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+            <div className="space-y-2">
+              <Label>Pricing Method</Label>
+              <Select
+                value={overrideMode}
+                onValueChange={(value) => setOverrideMode(value as 'historical_market' | 'fixed_manual')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="historical_market">Historical market averages</SelectItem>
+                  <SelectItem value="fixed_manual">Fixed manual price</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {overrideMode === 'fixed_manual' ? (
               <div className="space-y-2">
-                <Label>Fuel Price (CAD/L)</Label>
+                <Label>Manual Fuel Price (CAD/L)</Label>
                 <Input
                   type="number"
                   min={0}
                   step="0.001"
-                  value={fuelPrice}
-                  onChange={(e) => {
-                    setFuelPrice(Number(e.target.value));
-                    setFuelPriceSource('manual');
-                    setFuelPriceUpdatedAt(Date.now());
-                  }}
+                  value={manualOverridePrice}
+                  onChange={(e) => setManualOverridePrice(Number(e.target.value))}
                 />
               </div>
-              <div className="flex items-end">
-                <Button variant="outline" onClick={() => void handleFetchCanadianAverage()} disabled={fetchingPrice}>
-                  {fetchingPrice ? 'Fetching…' : 'Fetch Canadian Average'}
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              The fetched price is a monthly Statistics Canada average for the selected market, not a live station quote.
-            </p>
-
-            {(fuelPriceSource || fuelPriceUpdatedAt) && (
-              <div className="rounded-md border p-3 text-sm text-muted-foreground">
-                <p>Current estimate: {cad(fuelPrice)} / L</p>
-                <p>Market: {gasMarkets.find((market) => market.key === fuelPriceMarket)?.label ?? 'Unknown'}</p>
-                {fuelPriceSource && <p>Source: {fuelPriceSource === 'statcan' ? 'Statistics Canada monthly average' : 'Manual entry'}</p>}
-                {fuelPriceUpdatedAt && <p>Updated: {format(fuelPriceUpdatedAt, 'PPP p')}</p>}
-              </div>
+            ) : (
+              <>
+                <div className="flex items-end gap-4">
+                  <div className="flex-1 rounded-md border p-3 text-sm text-muted-foreground">
+                    <p>Historical pricing source: Statistics Canada monthly averages</p>
+                    <p>Coverage market: {gasMarkets.find((market) => market.key === fuelPriceMarket)?.label ?? 'Unknown'}</p>
+                    {previewPrice && (
+                      <>
+                        <p>Latest available average: {cad(previewPrice.priceCadPerLitre)} / L</p>
+                        <p>Reference month: {previewPrice.effectiveMonth.slice(0, 7)}</p>
+                        <p>Published: {format(previewPrice.updatedAt, 'PPP p')}</p>
+                      </>
+                    )}
+                  </div>
+                  <Button variant="outline" onClick={() => void handleFetchPreview()} disabled={fetchingPreview}>
+                    {fetchingPreview ? 'Fetching…' : 'Preview Latest Average'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Historical mode uses month-specific StatCan averages at read time. It does not use live station prices.
+                </p>
+              </>
             )}
           </>
         )}

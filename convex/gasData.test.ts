@@ -116,12 +116,11 @@ test('addFillUp rejects vehicles in estimated fuel mode', async () => {
 
   await authed.mutation(api.vehicles.updateFuelPreferences, {
     id: vehicleId,
-    fuelCostMode: 'estimated',
+    fuelCostMode: 'estimated_historical',
     fuelEfficiencyLPer100Km: 7.5,
-    fuelPriceCadPerLitre: 1.6,
-    fuelPriceSource: 'manual',
-    fuelPriceUpdatedAt: Date.now(),
     fuelPriceMarket: 'canada',
+    fuelPriceOverrideMode: 'fixed_manual',
+    fuelPriceManualOverrideCadPerLitre: 1.6,
     fuelType: 'regular',
   });
 

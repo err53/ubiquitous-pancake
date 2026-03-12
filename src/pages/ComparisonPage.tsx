@@ -1,4 +1,4 @@
-import { useQuery } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,10 +6,12 @@ import { MetricsPanel } from '@/components/MetricsPanel';
 import { ComparisonChart } from '@/components/ComparisonChart';
 import { TimeRangeSelector } from '@/components/TimeRangeSelector';
 import { getDateRange, type TimeRange } from '@/lib/dates';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export function ComparisonPage() {
   const vehicles = useQuery(api.vehicles.list);
+  const ensureHistoricalPrices = useAction(api.gasPrices.ensureHistoricalPrices);
   const [vehicleIdA, setVehicleIdA] = useState<Id<'vehicles'> | null>(null);
   const [vehicleIdB, setVehicleIdB] = useState<Id<'vehicles'> | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -26,6 +28,36 @@ export function ComparisonPage() {
         }
       : 'skip',
   );
+
+  useEffect(() => {
+    if (!vehicles || !vehicleIdA || !vehicleIdB) return;
+
+    const selectedVehicles = vehicles.filter((vehicle) => vehicle._id === vehicleIdA || vehicle._id === vehicleIdB);
+    const needsHistoricalPrices = selectedVehicles.some(
+      (vehicle) =>
+        vehicle.type === 'gas' &&
+        vehicle.fuelCostMode === 'estimated_historical' &&
+        vehicle.fuelPriceOverrideMode === 'historical_market',
+    );
+    if (!needsHistoricalPrices) return;
+
+    let cancelled = false;
+    void ensureHistoricalPrices({
+      vehicleIds: [vehicleIdA, vehicleIdB],
+      from: dateRange?.from,
+      to: dateRange?.to,
+    })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : 'Failed to load historical fuel prices');
+        }
+      })
+      .finally(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dateRange?.from, dateRange?.to, ensureHistoricalPrices, vehicleIdA, vehicleIdB, vehicles]);
 
   if (vehicles === undefined) {
     return <div className="text-muted-foreground">Loading...</div>;
@@ -74,6 +106,12 @@ export function ComparisonPage() {
         <p className="text-muted-foreground">Loading...</p>
       ) : (
         <div className="space-y-8">
+          {(comparison.vehicleA?.historicalFuelStatus === 'missing_prices' ||
+            comparison.vehicleB?.historicalFuelStatus === 'missing_prices') && (
+            <p className="text-sm text-muted-foreground">
+              Loading historical fuel prices for the selected range...
+            </p>
+          )}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <h2 className="font-semibold">{labelA}</h2>

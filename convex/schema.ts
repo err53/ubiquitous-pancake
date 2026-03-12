@@ -12,15 +12,26 @@ export default defineSchema({
     purchaseDate: v.number(), // Unix ms
     initialOdometer: v.number(), // km
     vin: v.optional(v.string()), // VIN for EV vehicles (Tessie)
-    fuelCostMode: v.optional(v.union(v.literal('manual_fillups'), v.literal('estimated'))),
+    fuelCostMode: v.optional(v.union(v.literal('manual_fillups'), v.literal('estimated_historical'))),
     fuelEfficiencyLPer100Km: v.optional(v.number()),
-    fuelPriceCadPerLitre: v.optional(v.number()),
-    fuelPriceSource: v.optional(v.union(v.literal('manual'), v.literal('statcan'))),
-    fuelPriceUpdatedAt: v.optional(v.number()),
     fuelPriceMarket: v.optional(v.string()),
+    fuelPriceOverrideMode: v.optional(v.union(v.literal('historical_market'), v.literal('fixed_manual'))),
+    fuelPriceManualOverrideCadPerLitre: v.optional(v.number()),
     fuelType: v.optional(v.union(v.literal('regular'), v.literal('premium'), v.literal('diesel'))),
     removedAt: v.optional(v.number()), // soft delete
   }),
+
+  fuelPriceCache: defineTable({
+    market: v.string(),
+    fuelType: v.union(v.literal('regular'), v.literal('premium'), v.literal('diesel')),
+    month: v.string(), // YYYY-MM-01 in UTC
+    priceCadPerLitre: v.number(),
+    publishedAt: v.number(),
+    fetchedAt: v.number(),
+    source: v.literal('statcan'),
+  })
+    .index('by_lookup', ['market', 'fuelType', 'month'])
+    .index('by_market_fuel_type', ['market', 'fuelType']),
 
   // EV charging sessions (fetched from Tessie)
   chargingSessions: defineTable({

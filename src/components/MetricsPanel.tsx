@@ -3,7 +3,7 @@ import { cadPerKm, cad, km } from '@/lib/formatters';
 
 interface MetricsPanelProps {
   kmDriven: number | null;
-  operatingCostTotal: number;
+  operatingCostTotal: number | null;
   operatingCostPerKm: number | null;
   depreciationPerKm: number | null;
   totalCostPerKm: number | null;
@@ -38,7 +38,7 @@ export function MetricsPanel({
       <MetricCard
         label="Operating cost/km"
         value={cadPerKm(operatingCostPerKm)}
-        sub={`${cad(operatingCostTotal)} total`}
+        sub={operatingCostTotal !== null ? `${cad(operatingCostTotal)} total` : undefined}
       />
       <MetricCard label="Lifetime depreciation/km" value={cadPerKm(depreciationPerKm)} />
       <MetricCard label="Blended total cost/km" value={cadPerKm(totalCostPerKm)} />

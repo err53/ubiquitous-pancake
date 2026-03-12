@@ -21,6 +21,7 @@ import type * as gasPrices from "../gasPrices.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_costCalc from "../lib/costCalc.js";
 import type * as lib_crypto from "../lib/crypto.js";
+import type * as lib_historicalFuel from "../lib/historicalFuel.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as odometer from "../odometer.js";
 import type * as settings from "../settings.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/costCalc": typeof lib_costCalc;
   "lib/crypto": typeof lib_crypto;
+  "lib/historicalFuel": typeof lib_historicalFuel;
   myFunctions: typeof myFunctions;
   odometer: typeof odometer;
   settings: typeof settings;

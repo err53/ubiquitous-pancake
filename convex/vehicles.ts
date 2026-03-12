@@ -39,6 +39,7 @@ export const register = mutation({
       ...args,
       fuelCostMode: args.type === 'gas' ? 'manual_fillups' : undefined,
       fuelPriceMarket: args.type === 'gas' ? 'canada' : undefined,
+      fuelPriceOverrideMode: args.type === 'gas' ? 'historical_market' : undefined,
       fuelType: args.type === 'gas' ? 'regular' : undefined,
     });
     // Record initial odometer reading
@@ -55,12 +56,11 @@ export const register = mutation({
 export const updateFuelPreferences = mutation({
   args: {
     id: v.id('vehicles'),
-    fuelCostMode: v.union(v.literal('manual_fillups'), v.literal('estimated')),
+    fuelCostMode: v.union(v.literal('manual_fillups'), v.literal('estimated_historical')),
     fuelEfficiencyLPer100Km: v.optional(v.number()),
-    fuelPriceCadPerLitre: v.optional(v.number()),
-    fuelPriceSource: v.optional(v.union(v.literal('manual'), v.literal('statcan'))),
-    fuelPriceUpdatedAt: v.optional(v.number()),
     fuelPriceMarket: v.optional(v.string()),
+    fuelPriceOverrideMode: v.union(v.literal('historical_market'), v.literal('fixed_manual')),
+    fuelPriceManualOverrideCadPerLitre: v.optional(v.number()),
     fuelType: v.union(v.literal('regular'), v.literal('premium'), v.literal('diesel')),
   },
   handler: async (ctx, args) => {
@@ -68,25 +68,27 @@ export const updateFuelPreferences = mutation({
     const vehicle = await ctx.db.get(args.id);
     if (!vehicle) throw new Error('Vehicle not found');
     if (vehicle.type !== 'gas') throw new Error('Fuel preferences are only supported for gas vehicles');
-    if (args.fuelCostMode === 'estimated') {
+    if (args.fuelCostMode === 'estimated_historical') {
       if (args.fuelEfficiencyLPer100Km === undefined || args.fuelEfficiencyLPer100Km <= 0) {
         throw new Error('Fuel efficiency must be greater than 0');
       }
-      if (args.fuelPriceCadPerLitre === undefined || args.fuelPriceCadPerLitre <= 0) {
-        throw new Error('Fuel price must be greater than 0');
-      }
       if (!args.fuelPriceMarket) {
         throw new Error('Fuel market is required for estimated mode');
+      }
+      if (
+        args.fuelPriceOverrideMode === 'fixed_manual' &&
+        (args.fuelPriceManualOverrideCadPerLitre === undefined || args.fuelPriceManualOverrideCadPerLitre <= 0)
+      ) {
+        throw new Error('Manual fuel price must be greater than 0');
       }
     }
 
     await ctx.db.patch(args.id, {
       fuelCostMode: args.fuelCostMode,
       fuelEfficiencyLPer100Km: args.fuelEfficiencyLPer100Km,
-      fuelPriceCadPerLitre: args.fuelPriceCadPerLitre,
-      fuelPriceSource: args.fuelPriceSource,
-      fuelPriceUpdatedAt: args.fuelPriceUpdatedAt,
       fuelPriceMarket: args.fuelPriceMarket,
+      fuelPriceOverrideMode: args.fuelPriceOverrideMode,
+      fuelPriceManualOverrideCadPerLitre: args.fuelPriceManualOverrideCadPerLitre,
       fuelType: args.fuelType,
     });
   },
