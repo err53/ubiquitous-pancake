@@ -6,32 +6,14 @@ import { api } from './_generated/api';
 
 const modules = import.meta.glob('./**/*.*s');
 
-test('getEvSyncState reports missing credentials for admins', async () => {
+test('hasEvCredentials reports missing credentials for authenticated users', async () => {
   const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'admin@example.com',
-      isAdmin: true,
-      addedAt: Date.now(),
-    });
-  });
-
-  await expect(
-    t.withIdentity({ email: 'admin@example.com' }).query(api.settings.getEvSyncState),
-  ).resolves.toEqual({
-    hasCredentials: false,
-    isAdmin: true,
-  });
+  await expect(t.withIdentity({ subject: 'user_1' }).query(api.settings.hasEvCredentials)).resolves.toBe(false);
 });
 
-test('getEvSyncState reports configured credentials for non-admins', async () => {
+test('hasEvCredentials reports configured credentials for authenticated users', async () => {
   const t = convexTest(schema, modules);
   await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'member@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
     await ctx.db.insert('evCredentials', {
       provider: 'tessie',
       encryptedToken: 'ciphertext',
@@ -41,10 +23,5 @@ test('getEvSyncState reports configured credentials for non-admins', async () =>
     });
   });
 
-  await expect(
-    t.withIdentity({ email: 'member@example.com' }).query(api.settings.getEvSyncState),
-  ).resolves.toEqual({
-    hasCredentials: true,
-    isAdmin: false,
-  });
+  await expect(t.withIdentity({ subject: 'user_1' }).query(api.settings.hasEvCredentials)).resolves.toBe(true);
 });

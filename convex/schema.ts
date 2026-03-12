@@ -2,16 +2,6 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 export default defineSchema({
-  // Auth
-  allowlist: defineTable({
-    email: v.string(), // display label (WorkOS email or admin note)
-    subject: v.optional(v.string()), // Legacy field retained temporarily for cleanup migration
-    isAdmin: v.boolean(),
-    addedAt: v.number(), // Unix ms
-  })
-    .index('by_email', ['email'])
-    .index('by_subject', ['subject']),
-
   // Vehicles
   vehicles: defineTable({
     type: v.union(v.literal('electric'), v.literal('gas')),

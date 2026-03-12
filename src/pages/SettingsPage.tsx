@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 export function SettingsPage() {
   const latestSync = useQuery(api.syncLogs.getLatest);
-  const syncState = useQuery(api.settings.getEvSyncState);
+  const hasCredentials = useQuery(api.settings.hasEvCredentials);
   const setCredential = useAction(api.settingsActions.setEvCredential);
   const [token, setToken] = useState('');
   const [saving, setSaving] = useState(false);
@@ -43,45 +43,37 @@ export function SettingsPage() {
           <CardTitle>Tessie API Credentials</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {syncState === undefined ? (
+          {hasCredentials === undefined ? (
             <p className="text-sm text-muted-foreground">Loading credential status...</p>
           ) : (
             <>
               <p
                 className={
-                  syncState.hasCredentials
+                  hasCredentials
                     ? 'text-sm text-green-600 dark:text-green-400'
                     : 'text-sm text-amber-600 dark:text-amber-400'
                 }
               >
-                {syncState.hasCredentials
+                {hasCredentials
                   ? 'API token is configured. Enter a new token below to replace it.'
                   : 'No Tessie API token is configured yet.'}
               </p>
-              {syncState.isAdmin ? (
-                <>
-                  <div className="space-y-2">
-                    <Label>API Token</Label>
-                    <Input
-                      type="password"
-                      placeholder="Tessie API token"
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      autoComplete="off"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Token is stored encrypted and never displayed after saving.
-                    </p>
-                  </div>
-                  <Button onClick={() => void handleSave()} disabled={!token || saving}>
-                    {saving ? 'Saving…' : 'Save Token'}
-                  </Button>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Only admins can manage Tessie credentials. Contact an admin to enable EV sync.
+              <div className="space-y-2">
+                <Label>API Token</Label>
+                <Input
+                  type="password"
+                  placeholder="Tessie API token"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  autoComplete="off"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Token is stored encrypted and never displayed after saving.
                 </p>
-              )}
+              </div>
+              <Button onClick={() => void handleSave()} disabled={!token || saving}>
+                {saving ? 'Saving…' : 'Save Token'}
+              </Button>
             </>
           )}
         </CardContent>

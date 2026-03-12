@@ -7,14 +7,7 @@ import { api } from './_generated/api';
 const modules = import.meta.glob('./**/*.*s');
 
 async function seedAllowlist(t: ReturnType<typeof convexTest>) {
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'test@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
-  });
-  return t.withIdentity({ email: 'test@example.com' });
+  return t.withIdentity({ subject: 'user_test' });
 }
 
 test('addFillUp inserts odometer reading', async () => {

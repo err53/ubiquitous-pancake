@@ -8,42 +8,34 @@ const modules = import.meta.glob('./**/*.*s');
 
 process.env.ENCRYPTION_KEY = '11'.repeat(32);
 
-async function seedUser(t: ReturnType<typeof convexTest>, email: string, isAdmin: boolean) {
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email,
-      isAdmin,
-      addedAt: Date.now(),
-    });
-  });
-  return t.withIdentity({ email });
+function authedUser(t: ReturnType<typeof convexTest>, subject = 'user_1') {
+  return t.withIdentity({ subject });
 }
 
-test('admin can save an EV credential using email-only auth', async () => {
+test('authenticated user can save an EV credential', async () => {
   const t = convexTest(schema, modules);
-  const admin = await seedUser(t, 'admin@example.com', true);
+  const user = authedUser(t);
 
-  await admin.action(api.settingsActions.setEvCredential, { token: 'first-token' });
+  await user.action(api.settingsActions.setEvCredential, { token: 'first-token' });
 
   const credentials = await t.run(async (ctx) => ctx.db.query('evCredentials').collect());
   expect(credentials).toHaveLength(1);
 });
 
-test('non-admin cannot save an EV credential', async () => {
+test('unauthenticated user cannot save an EV credential', async () => {
   const t = convexTest(schema, modules);
-  const member = await seedUser(t, 'member@example.com', false);
 
-  await expect(member.action(api.settingsActions.setEvCredential, { token: 'denied' })).rejects.toThrow(
-    'Admin required',
+  await expect(t.action(api.settingsActions.setEvCredential, { token: 'denied' })).rejects.toThrow(
+    'Unauthenticated',
   );
 });
 
 test('saving a credential updates the existing row instead of inserting a duplicate', async () => {
   const t = convexTest(schema, modules);
-  const admin = await seedUser(t, 'admin@example.com', true);
+  const user = authedUser(t);
 
-  await admin.action(api.settingsActions.setEvCredential, { token: 'first-token' });
-  await admin.action(api.settingsActions.setEvCredential, { token: 'second-token' });
+  await user.action(api.settingsActions.setEvCredential, { token: 'first-token' });
+  await user.action(api.settingsActions.setEvCredential, { token: 'second-token' });
 
   const credentials = await t.run(async (ctx) => ctx.db.query('evCredentials').collect());
   expect(credentials).toHaveLength(1);

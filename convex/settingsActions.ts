@@ -5,16 +5,12 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { encrypt, decrypt } from './lib/crypto';
 
-// Store encrypted Tessie token (admin only)
+// Store encrypted Tessie token for authenticated users.
 export const setEvCredential = action({
   args: { token: v.string() },
   handler: async (ctx: ActionCtx, { token }: { token: string }): Promise<void> => {
-    // Actions can't directly query db; use internal query
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthenticated');
-    if (!identity.email) throw new Error('Authenticated user is missing email claim');
-    const role = await ctx.runQuery(internal.allowlist.getByEmail, { email: identity.email });
-    if (!role?.isAdmin) throw new Error('Admin required');
 
     const keyHex = process.env.ENCRYPTION_KEY;
     if (!keyHex) throw new Error('ENCRYPTION_KEY environment variable not set');

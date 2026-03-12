@@ -1,13 +1,10 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '@workos-inc/authkit-react';
-import { useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import { Car, BarChart2, Settings, ShieldCheck, LogOut } from 'lucide-react';
+import { Car, BarChart2, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function AppLayout() {
   const { signOut } = useAuth();
-  const role = useQuery(api.allowlist.getMyRole);
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -43,12 +40,6 @@ export function AppLayout() {
             <Settings className="w-4 h-4 shrink-0" />
             Settings
           </NavLink>
-          {role?.isAdmin && (
-            <NavLink to="/admin" className={navItemClass}>
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              Admin
-            </NavLink>
-          )}
         </div>
 
         {/* Sign out */}

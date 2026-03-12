@@ -5,10 +5,8 @@ import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/layouts/AppLayout';
 import { VehiclesPage } from '@/pages/VehiclesPage';
 import { VehicleDetailPage } from '@/pages/VehicleDetailPage';
-import { AdminPage } from '@/pages/AdminPage';
 import { ComparisonPage } from '@/pages/ComparisonPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import { AllowlistErrorBoundary } from '@/components/AllowlistErrorBoundary';
 
 function SignInButton() {
   const { signIn } = useAuth();
@@ -22,7 +20,9 @@ function SignInButton() {
         </div>
         <span className="text-2xl font-semibold tracking-tight">CarCosts</span>
       </div>
-      <p className="text-sm text-muted-foreground">Track your vehicle operating costs</p>
+      <p className="text-sm text-muted-foreground text-center max-w-xs">
+        Track your vehicle operating costs. Access is invite-only.
+      </p>
       <Button size="lg" onClick={() => void signIn()}>
         Sign in
       </Button>
@@ -39,14 +39,12 @@ export default function App() {
         </div>
       </Unauthenticated>
       <Authenticated>
-        <AllowlistErrorBoundary>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Navigate to="/vehicles" replace />} />
               <Route path="vehicles" element={<VehiclesPage />} />
               <Route path="vehicles/:id" element={<VehicleDetailPage />} />
-              <Route path="admin" element={<AdminPage />} />
               <Route path="compare" element={<ComparisonPage />} />
               <Route path="settings" element={<SettingsPage />} />
               {/* More routes added per chunk */}
@@ -54,7 +52,6 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
-        </AllowlistErrorBoundary>
       </Authenticated>
     </>
   );

@@ -1,6 +1,5 @@
 import { internalMutation, internalQuery, query } from './_generated/server';
 import { v } from 'convex/values';
-import { requireAuth } from './lib/auth';
 
 // Internal: get raw credential row
 export const getCredentialRaw = internalQuery({
@@ -37,14 +36,12 @@ export const updateCredential = internalMutation({
   },
 });
 
-export const getEvSyncState = query({
+export const hasEvCredentials = query({
   args: {},
   handler: async (ctx) => {
-    const { isAdmin } = await requireAuth(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthenticated');
     const cred = await ctx.db.query('evCredentials').first();
-    return {
-      hasCredentials: cred !== null,
-      isAdmin,
-    };
+    return cred !== null;
   },
 });

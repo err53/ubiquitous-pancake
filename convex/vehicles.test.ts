@@ -8,14 +8,7 @@ const modules = import.meta.glob('./**/*.*s');
 
 test('register vehicle inserts initial odometer reading', async () => {
   const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'test@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
-  });
-  const authed = t.withIdentity({ email: 'test@example.com' });
+  const authed = t.withIdentity({ subject: 'user_test' });
   const vehicleId = await authed.mutation(api.vehicles.register, {
     type: 'gas',
     make: 'Toyota',
@@ -38,14 +31,7 @@ test('register vehicle inserts initial odometer reading', async () => {
 
 test('soft delete sets removedAt', async () => {
   const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'test@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
-  });
-  const authed = t.withIdentity({ email: 'test@example.com' });
+  const authed = t.withIdentity({ subject: 'user_test' });
   const vehicleId = await authed.mutation(api.vehicles.register, {
     type: 'gas',
     make: 'Toyota',
@@ -60,17 +46,9 @@ test('soft delete sets removedAt', async () => {
   expect(vehicles.find((v) => v._id === vehicleId)).toBeUndefined();
 });
 
-test('triggerSync rejects users not on the email allowlist', async () => {
+test('triggerSync rejects unauthenticated users', async () => {
   const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'allowed@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
-  });
-
-  const allowedUser = t.withIdentity({ email: 'allowed@example.com' });
+  const allowedUser = t.withIdentity({ subject: 'user_test' });
   const vehicleId = await allowedUser.mutation(api.vehicles.register, {
     type: 'electric',
     make: 'Tesla',
@@ -82,34 +60,5 @@ test('triggerSync rejects users not on the email allowlist', async () => {
     vin: '5YJ3E1EA0JF000001',
   });
 
-  await expect(
-    t.withIdentity({ email: 'blocked@example.com' }).action(api.vehicles.triggerSync, { vehicleId }),
-  ).rejects.toThrow('Not on allowlist');
-});
-
-test('triggerSync rejects authenticated users missing an email claim', async () => {
-  const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'allowed@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
-  });
-
-  const allowedUser = t.withIdentity({ email: 'allowed@example.com' });
-  const vehicleId = await allowedUser.mutation(api.vehicles.register, {
-    type: 'electric',
-    make: 'Tesla',
-    model: 'Model Y',
-    year: 2024,
-    purchasePrice: 60000,
-    purchaseDate: Date.now(),
-    initialOdometer: 50,
-    vin: '7SAYGDEE0PF000001',
-  });
-
-  await expect(t.withIdentity({}).action(api.vehicles.triggerSync, { vehicleId })).rejects.toThrow(
-    'Authenticated user is missing email claim',
-  );
+  await expect(t.action(api.vehicles.triggerSync, { vehicleId })).rejects.toThrow('Unauthenticated');
 });

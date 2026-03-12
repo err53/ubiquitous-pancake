@@ -76,9 +76,6 @@ export const triggerSync = action({
   handler: async (ctx, { vehicleId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthenticated');
-    if (!identity.email) throw new Error('Authenticated user is missing email claim');
-    const entry = await ctx.runQuery(internal.allowlist.getByEmail, { email: identity.email });
-    if (!entry) throw new Error('Not on allowlist');
     const vehicle = await ctx.runQuery(api.vehicles.get, { id: vehicleId });
     if (!vehicle) throw new Error('Vehicle not found');
     if (!vehicle.vin) throw new Error('Vehicle has no VIN configured');

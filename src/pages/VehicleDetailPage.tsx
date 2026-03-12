@@ -27,7 +27,7 @@ export function VehicleDetailPage() {
   const vehicle = useQuery(api.vehicles.get, { id: vehicleId });
   const fillUps = useQuery(api.gasData.listFillUps, { vehicleId });
   const maintenance = useQuery(api.gasData.listMaintenance, { vehicleId });
-  const evSyncState = useQuery(api.settings.getEvSyncState);
+  const hasEvCredentials = useQuery(api.settings.hasEvCredentials);
   const deleteFillUp = useMutation(api.gasData.deleteFillUp);
   const deleteMaintenance = useMutation(api.gasData.deleteMaintenance);
   const triggerSync = useAction(api.vehicles.triggerSync);
@@ -75,7 +75,7 @@ export function VehicleDetailPage() {
 
   const renderEvSyncControl = () => {
     if (vehicle.type !== 'electric' || !vehicle.vin) return null;
-    if (evSyncState === undefined) {
+    if (hasEvCredentials === undefined) {
       return (
         <Button variant="outline" size="sm" disabled>
           Checking EV Sync...
@@ -83,7 +83,7 @@ export function VehicleDetailPage() {
       );
     }
 
-    if (evSyncState.hasCredentials) {
+    if (hasEvCredentials) {
       return (
         <Button
           variant="outline"
@@ -99,26 +99,13 @@ export function VehicleDetailPage() {
       );
     }
 
-    if (evSyncState.isAdmin) {
-      return (
-        <div className="flex flex-col items-end gap-1">
-          <Button variant="outline" size="sm" onClick={() => void navigate('/settings')}>
-            Configure EV Sync
-          </Button>
-          <p className="text-right text-xs text-muted-foreground">
-            Add a Tessie API token in Settings before running EV sync.
-          </p>
-        </div>
-      );
-    }
-
     return (
       <div className="flex flex-col items-end gap-1">
-        <Button variant="outline" size="sm" disabled>
-          Sync Unavailable
+        <Button variant="outline" size="sm" onClick={() => void navigate('/settings')}>
+          Configure EV Sync
         </Button>
         <p className="text-right text-xs text-muted-foreground">
-          Ask an admin to configure Tessie credentials before syncing EV data.
+          Add a Tessie API token in Settings before running EV sync.
         </p>
       </div>
     );
