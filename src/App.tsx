@@ -1,4 +1,5 @@
-import { Authenticated, Unauthenticated } from 'convex/react';
+import type { ReactNode } from 'react';
+import { Authenticated, AuthLoading, Unauthenticated } from 'convex/react';
 import { useAuth } from '@workos-inc/authkit-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -30,13 +31,54 @@ function SignInButton() {
   );
 }
 
+function AuthScreen({ children }: { children: ReactNode }) {
+  return <div className="flex h-screen items-center justify-center">{children}</div>;
+}
+
+function CallbackPage() {
+  const { signIn } = useAuth();
+
+  return (
+    <AuthScreen>
+      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
+        <div className="text-lg font-medium">Completing sign-in...</div>
+        <p className="text-sm text-muted-foreground">
+          If this page does not advance, the WorkOS code exchange failed in the browser.
+        </p>
+        <Button variant="outline" onClick={() => void signIn()}>
+          Try sign in again
+        </Button>
+      </div>
+    </AuthScreen>
+  );
+}
+
+function LoadingPage() {
+  return (
+    <AuthScreen>
+      <div className="text-sm text-muted-foreground">Loading...</div>
+    </AuthScreen>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthLoading>
+        <LoadingPage />
+      </AuthLoading>
       <Unauthenticated>
-        <div className="flex h-screen items-center justify-center">
-          <SignInButton />
-        </div>
+        <Routes>
+          <Route path="/callback" element={<CallbackPage />} />
+          <Route
+            path="*"
+            element={
+              <AuthScreen>
+                <SignInButton />
+              </AuthScreen>
+            }
+          />
+        </Routes>
       </Unauthenticated>
       <Authenticated>
         <Routes>

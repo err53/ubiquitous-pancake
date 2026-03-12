@@ -14,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <AuthKitProvider
         clientId={import.meta.env.VITE_WORKOS_CLIENT_ID}
+        apiHostname={import.meta.env.VITE_WORKOS_API_HOSTNAME}
         redirectUri={import.meta.env.VITE_WORKOS_REDIRECT_URI}
       >
         <ConvexProviderWithAuthKit client={convex} useAuth={useAuth}>
