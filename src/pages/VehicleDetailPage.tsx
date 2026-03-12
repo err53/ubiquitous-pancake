@@ -145,7 +145,17 @@ export function VehicleDetailPage() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-4 space-y-6">
-          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+          <div className="flex items-center justify-between gap-3">
+            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setOdometerDialog('add')}>
+                Add Odometer
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setDepreciationDialog('add')}>
+                Add Valuation
+              </Button>
+            </div>
+          </div>
           {dashboard === undefined ? (
             <p className="text-muted-foreground">Loading...</p>
           ) : (
