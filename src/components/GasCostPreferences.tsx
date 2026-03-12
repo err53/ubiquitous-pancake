@@ -12,7 +12,7 @@ import { gasMarkets } from '@/lib/gasMarkets';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-type GasVehicle = Doc<'vehicles'> & { type: 'gas' };
+type GasVehicle = Doc<'vehicles'>;
 
 export function GasCostPreferences({ vehicle }: { vehicle: GasVehicle }) {
   const updateFuelPreferences = useMutation(api.vehicles.updateFuelPreferences);
@@ -138,7 +138,7 @@ export function GasCostPreferences({ vehicle }: { vehicle: GasVehicle }) {
               </div>
               <div className="space-y-2">
                 <Label>Canadian Fuel Market</Label>
-                <Select value={fuelPriceMarket} onValueChange={setFuelPriceMarket}>
+                <Select value={fuelPriceMarket} onValueChange={(value) => setFuelPriceMarket(value ?? 'canada')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

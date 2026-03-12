@@ -53,6 +53,7 @@ export function VehicleDetailPage() {
     to: dateRange?.to,
   });
   const isEstimatedGasMode = vehicle?.type === 'gas' && (vehicle.fuelCostMode ?? 'manual_fillups') === 'estimated';
+  const gasVehicle = vehicle?.type === 'gas' ? vehicle : null;
   const estimatedFuelMarketLabel =
     dashboard?.estimatedFuelPriceMarket === null || dashboard?.estimatedFuelPriceMarket === undefined
       ? null
@@ -175,7 +176,7 @@ export function VehicleDetailPage() {
                 depreciationPerKm={dashboard.depreciation?.perKm ?? null}
                 totalCostPerKm={dashboard.totalCostPerKm}
               />
-              {vehicle.type === 'gas' && <GasCostPreferences vehicle={vehicle} />}
+              {gasVehicle && <GasCostPreferences vehicle={gasVehicle} />}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-md border p-4 text-sm">
                   <p className="font-medium">Depreciation basis</p>
