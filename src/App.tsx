@@ -24,7 +24,7 @@ function SignInButton() {
       </div>
       <p className="text-sm text-muted-foreground">Track your vehicle operating costs</p>
       <Button size="lg" onClick={() => void signIn()}>
-        Sign in with magic link
+        Sign in
       </Button>
     </div>
   );

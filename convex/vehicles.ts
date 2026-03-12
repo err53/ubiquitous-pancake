@@ -76,9 +76,8 @@ export const triggerSync = action({
   handler: async (ctx, { vehicleId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthenticated');
-    const subject = identity.subject;
-    // Check allowlist (same as requireAuth but via runQuery since this is an action)
-    const entry = await ctx.runQuery(internal.settings.getUserRole, { subject });
+    if (!identity.email) throw new Error('Authenticated user is missing email claim');
+    const entry = await ctx.runQuery(internal.allowlist.getByEmail, { email: identity.email });
     if (!entry) throw new Error('Not on allowlist');
     const vehicle = await ctx.runQuery(api.vehicles.get, { id: vehicleId });
     if (!vehicle) throw new Error('Vehicle not found');

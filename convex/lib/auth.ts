@@ -3,23 +3,13 @@ import { QueryCtx, MutationCtx } from '../_generated/server';
 export async function requireAuth(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error('Unauthenticated');
+  const email = identity.email;
+  if (!email) throw new Error('Authenticated user is missing email claim');
 
-  // WorkOS User Management JWTs use `sub` (user ID), not `email`.
-  // Look up by subject first (reliable), then fall back to email if present.
-  const subject = identity.subject;
-
-  let entry = await ctx.db
+  const entry = await ctx.db
     .query('allowlist')
-    .withIndex('by_subject', (q) => q.eq('subject', subject))
+    .withIndex('by_email', (q) => q.eq('email', email))
     .unique();
-
-  if (!entry && identity.email) {
-    entry = await ctx.db
-      .query('allowlist')
-      .withIndex('by_email', (q) => q.eq('email', identity.email!))
-      .unique();
-  }
-
   if (!entry) throw new Error('Not on allowlist');
   return { identity, isAdmin: entry.isAdmin };
 }

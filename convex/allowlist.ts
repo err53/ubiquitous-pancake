@@ -1,15 +1,23 @@
-import { mutation, query } from './_generated/server';
+import { internalQuery, mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { requireAdmin } from './lib/auth';
 
-// Returns the current user's WorkOS subject (user ID) and email (if in JWT).
-// Used for bootstrapping — no auth required so unauthenticated users can see their ID.
-export const getMyIdentity = query({
+export const getMyEmail = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    return { subject: identity.subject, email: identity.email ?? null };
+    return { email: identity.email ?? null };
+  },
+});
+
+export const getByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    return ctx.db
+      .query('allowlist')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .unique();
   },
 });
 
@@ -18,21 +26,13 @@ export const getMyRole = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    const subject = identity.subject;
+    const email = identity?.email;
+    if (!email) return null;
 
-    let entry = await ctx.db
+    const entry = await ctx.db
       .query('allowlist')
-      .withIndex('by_subject', (q) => q.eq('subject', subject))
+      .withIndex('by_email', (q) => q.eq('email', email))
       .unique();
-
-    if (!entry && identity.email) {
-      entry = await ctx.db
-        .query('allowlist')
-        .withIndex('by_email', (q) => q.eq('email', identity.email!))
-        .unique();
-    }
-
     return entry ? { isAdmin: entry.isAdmin } : null;
   },
 });
@@ -41,20 +41,27 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    return ctx.db.query('allowlist').collect();
+    const entries = await ctx.db.query('allowlist').collect();
+    return entries.map((entry) => ({
+      _id: entry._id,
+      _creationTime: entry._creationTime,
+      email: entry.email,
+      isAdmin: entry.isAdmin,
+      addedAt: entry.addedAt,
+    }));
   },
 });
 
 export const add = mutation({
-  args: { email: v.string(), subject: v.optional(v.string()), isAdmin: v.boolean() },
-  handler: async (ctx, { email, subject, isAdmin }) => {
+  args: { email: v.string(), isAdmin: v.boolean() },
+  handler: async (ctx, { email, isAdmin }) => {
     await requireAdmin(ctx);
     const existing = await ctx.db
       .query('allowlist')
       .withIndex('by_email', (q) => q.eq('email', email))
       .unique();
     if (existing) throw new Error('Email already on allowlist');
-    await ctx.db.insert('allowlist', { email, subject, isAdmin, addedAt: Date.now() });
+    await ctx.db.insert('allowlist', { email, isAdmin, addedAt: Date.now() });
   },
 });
 
@@ -63,5 +70,32 @@ export const remove = mutation({
   handler: async (ctx, { id }) => {
     await requireAdmin(ctx);
     await ctx.db.delete(id);
+  },
+});
+
+export const cleanupLegacySubjects = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const entries = await ctx.db.query('allowlist').collect();
+    const seenEmails = new Set<string>();
+
+    for (const entry of entries) {
+      if (!entry.email) throw new Error(`Allowlist entry ${entry._id} is missing an email`);
+      if (seenEmails.has(entry.email)) {
+        throw new Error(`Duplicate allowlist email found: ${entry.email}`);
+      }
+      seenEmails.add(entry.email);
+    }
+
+    for (const entry of entries) {
+      await ctx.db.replace(entry._id, {
+        email: entry.email,
+        isAdmin: entry.isAdmin,
+        addedAt: entry.addedAt,
+      });
+    }
+
+    return { cleaned: entries.length };
   },
 });

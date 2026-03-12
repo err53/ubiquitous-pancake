@@ -12,25 +12,22 @@ interface State {
 
 // Shown when the caught error is "Not on allowlist"
 function NotAllowlistedPage() {
-  const identity = useQuery(api.allowlist.getMyIdentity);
+  const identity = useQuery(api.allowlist.getMyEmail);
 
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="max-w-md space-y-4 p-6 border rounded-lg">
         <h1 className="text-xl font-semibold">Access denied</h1>
         <p className="text-muted-foreground text-sm">
-          Your account is not on the allowlist. Share your WorkOS User ID with an admin to get access.
+          Your account is not on the allowlist. Ask an admin to add your email address to get access.
         </p>
         {identity === undefined && (
-          <p className="text-sm text-muted-foreground">Loading your identity...</p>
+          <p className="text-sm text-muted-foreground">Loading your account details...</p>
         )}
         {identity && (
           <div className="bg-muted/50 rounded p-3 space-y-1 text-sm">
-            <p className="font-medium">Your WorkOS User ID</p>
-            <code className="block font-mono break-all">{identity.subject}</code>
-            {identity.email && (
-              <p className="text-muted-foreground">Email: {identity.email}</p>
-            )}
+            <p className="font-medium">Signed in email</p>
+            <code className="block font-mono break-all">{identity.email ?? 'Email unavailable'}</code>
           </div>
         )}
       </div>
@@ -64,7 +61,9 @@ export class AllowlistErrorBoundary extends Component<Props, State> {
     const { error } = this.state;
     if (error) {
       const isAllowlistError =
-        error.message.includes('Not on allowlist') || error.message.includes('Unauthenticated');
+        error.message.includes('Not on allowlist') ||
+        error.message.includes('Unauthenticated') ||
+        error.message.includes('Authenticated user is missing email claim');
       if (isAllowlistError) {
         return <NotAllowlistedPage />;
       }

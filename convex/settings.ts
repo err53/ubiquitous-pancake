@@ -1,5 +1,6 @@
 import { internalMutation, internalQuery, query } from './_generated/server';
 import { v } from 'convex/values';
+import { requireAuth } from './lib/auth';
 
 // Internal: get raw credential row
 export const getCredentialRaw = internalQuery({
@@ -36,21 +37,14 @@ export const updateCredential = internalMutation({
   },
 });
 
-// Internal: check user role by WorkOS user ID (subject)
-export const getUserRole = internalQuery({
-  args: { subject: v.string() },
-  handler: async (ctx, { subject }) => {
-    return ctx.db.query('allowlist').withIndex('by_subject', (q) => q.eq('subject', subject)).unique();
-  },
-});
-
-// Public query: check if credentials are configured (for UI)
-export const hasEvCredentials = query({
+export const getEvSyncState = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error('Unauthenticated');
+    const { isAdmin } = await requireAuth(ctx);
     const cred = await ctx.db.query('evCredentials').first();
-    return cred !== null;
+    return {
+      hasCredentials: cred !== null,
+      isAdmin,
+    };
   },
 });

@@ -9,11 +9,10 @@ import { toast } from 'sonner';
 
 export function AdminPage() {
   const entries = useQuery(api.allowlist.list);
-  const myIdentity = useQuery(api.allowlist.getMyIdentity);
+  const myEmail = useQuery(api.allowlist.getMyEmail);
   const add = useMutation(api.allowlist.add);
   const remove = useMutation(api.allowlist.remove);
   const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
 
   if (entries === undefined) {
     return (
@@ -31,9 +30,8 @@ export function AdminPage() {
       return;
     }
     try {
-      await add({ email, subject: subject || undefined, isAdmin: false });
+      await add({ email, isAdmin: false });
       setEmail('');
-      setSubject('');
       toast.success('Email added to allowlist');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add email');
@@ -47,18 +45,11 @@ export function AdminPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage users who can access this application.</p>
       </div>
 
-      {myIdentity && (
+      {myEmail && (
         <Card>
           <CardContent className="pt-5 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Identity</p>
-            <div className="flex items-center gap-3 flex-wrap">
-              <code className="text-xs font-mono bg-muted px-2 py-1 rounded text-foreground">
-                {myIdentity.subject}
-              </code>
-              {myIdentity.email && (
-                <span className="text-sm text-muted-foreground">{myIdentity.email}</span>
-              )}
-            </div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Signed In Email</p>
+            <p className="text-sm text-muted-foreground">{myEmail.email ?? 'Email unavailable'}</p>
           </CardContent>
         </Card>
       )}
@@ -73,12 +64,6 @@ export function AdminPage() {
             onKeyDown={(e) => e.key === 'Enter' && void handleAdd()}
             className="w-64"
           />
-          <Input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="WorkOS User ID (optional)"
-            className="w-72"
-          />
           <Button onClick={() => void handleAdd()} disabled={!email}>
             Add
           </Button>
@@ -90,7 +75,6 @@ export function AdminPage() {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Email</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium">WorkOS User ID</TableHead>
               <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-medium text-center">Admin</TableHead>
               <TableHead className="w-24" />
             </TableRow>
@@ -98,7 +82,7 @@ export function AdminPage() {
           <TableBody>
             {entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
                   No entries yet.
                 </TableCell>
               </TableRow>
@@ -106,7 +90,6 @@ export function AdminPage() {
               entries.map((e) => (
                 <TableRow key={e._id}>
                   <TableCell className="font-medium py-3">{e.email}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground py-3">{e.subject ?? '—'}</TableCell>
                   <TableCell className="text-center py-3">
                     {e.isAdmin ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/15 text-primary">

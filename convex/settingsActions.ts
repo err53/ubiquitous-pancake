@@ -12,8 +12,8 @@ export const setEvCredential = action({
     // Actions can't directly query db; use internal query
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthenticated');
-    const subject = identity.subject;
-    const role = await ctx.runQuery(internal.settings.getUserRole, { subject });
+    if (!identity.email) throw new Error('Authenticated user is missing email claim');
+    const role = await ctx.runQuery(internal.allowlist.getByEmail, { email: identity.email });
     if (!role?.isAdmin) throw new Error('Admin required');
 
     const keyHex = process.env.ENCRYPTION_KEY;

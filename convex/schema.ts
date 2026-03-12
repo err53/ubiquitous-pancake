@@ -5,7 +5,7 @@ export default defineSchema({
   // Auth
   allowlist: defineTable({
     email: v.string(), // display label (WorkOS email or admin note)
-    subject: v.optional(v.string()), // WorkOS User ID (sub claim) for reliable lookup
+    subject: v.optional(v.string()), // Legacy field retained temporarily for cleanup migration
     isAdmin: v.boolean(),
     addedAt: v.number(), // Unix ms
   })

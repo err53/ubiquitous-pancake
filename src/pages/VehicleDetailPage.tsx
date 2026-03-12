@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useAction } from 'convex/react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,11 +21,13 @@ import { toast } from 'sonner';
 
 export function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const vehicleId = id as Id<'vehicles'>;
 
   const vehicle = useQuery(api.vehicles.get, { id: vehicleId });
   const fillUps = useQuery(api.gasData.listFillUps, { vehicleId });
   const maintenance = useQuery(api.gasData.listMaintenance, { vehicleId });
+  const evSyncState = useQuery(api.settings.getEvSyncState);
   const deleteFillUp = useMutation(api.gasData.deleteFillUp);
   const deleteMaintenance = useMutation(api.gasData.deleteMaintenance);
   const triggerSync = useAction(api.vehicles.triggerSync);
@@ -71,6 +73,57 @@ export function VehicleDetailPage() {
       ? maintenance.find((m) => m._id === maintenanceDialog)
       : undefined;
 
+  const renderEvSyncControl = () => {
+    if (vehicle.type !== 'electric' || !vehicle.vin) return null;
+    if (evSyncState === undefined) {
+      return (
+        <Button variant="outline" size="sm" disabled>
+          Checking EV Sync...
+        </Button>
+      );
+    }
+
+    if (evSyncState.hasCredentials) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            void triggerSync({ vehicleId }).catch((err: unknown) => {
+              toast.error(err instanceof Error ? err.message : 'Sync failed');
+            });
+          }}
+        >
+          Sync EV Data
+        </Button>
+      );
+    }
+
+    if (evSyncState.isAdmin) {
+      return (
+        <div className="flex flex-col items-end gap-1">
+          <Button variant="outline" size="sm" onClick={() => void navigate('/settings')}>
+            Configure EV Sync
+          </Button>
+          <p className="text-right text-xs text-muted-foreground">
+            Add a Tessie API token in Settings before running EV sync.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <Button variant="outline" size="sm" disabled>
+          Sync Unavailable
+        </Button>
+        <p className="text-right text-xs text-muted-foreground">
+          Ask an admin to configure Tessie credentials before syncing EV data.
+        </p>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -80,19 +133,7 @@ export function VehicleDetailPage() {
           </h1>
           <p className="text-sm text-muted-foreground capitalize">{vehicle.type}</p>
         </div>
-        {vehicle.type === 'electric' && vehicle.vin && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              void triggerSync({ vehicleId }).catch((err: unknown) => {
-                toast.error(err instanceof Error ? err.message : 'Sync failed');
-              });
-            }}
-          >
-            Sync EV Data
-          </Button>
-        )}
+        {renderEvSyncControl()}
       </div>
 
       <Tabs defaultValue="dashboard">
