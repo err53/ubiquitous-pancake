@@ -41,6 +41,17 @@ type StatCanSeriesInfoResponse = Array<{
   };
 }>;
 
+type StatCanCoordinateLatestResponse = Array<{
+  status?: 'SUCCESS' | 'FAIL';
+  object?: {
+    vectorDataPoint?: Array<{
+      refPerRaw?: string;
+      value?: number;
+      releaseTime?: string;
+    }>;
+  };
+}>;
+
 type StatCanVectorRangeResponse = Array<{
   status?: 'SUCCESS' | 'FAIL';
   object?: {
@@ -283,16 +294,23 @@ export const fetchCanadianAverage = action({
       throw new Error('Unsupported fuel market');
     }
 
-    const { vectorId } = await getVectorId(market, fuelType);
-    const response = await fetch(
-      `https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorByLatestNPeriods?vectorIds=%22${vectorId}%22&latestN=1`,
-    );
+    const response = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromCubePidCoordAndLatestNPeriods', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        {
+          productId: 18100001,
+          coordinate: buildCoordinate(selectedMarket.geographyMember, FUEL_MEMBER_BY_TYPE[fuelType]),
+          latestN: 1,
+        },
+      ]),
+    });
 
     if (!response.ok) {
       throw new Error(`Statistics Canada lookup failed (${response.status})`);
     }
 
-    const payload = (await response.json()) as StatCanVectorRangeResponse;
+    const payload = (await response.json()) as StatCanCoordinateLatestResponse;
     const latestPoint = payload[0]?.object?.vectorDataPoint?.[0];
     if (!latestPoint?.refPerRaw || latestPoint.value === undefined) {
       throw new Error('No Canadian fuel price average was available for that market');
