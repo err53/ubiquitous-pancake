@@ -101,13 +101,50 @@ async function getVectorId(market: string, fuelType: FuelType) {
   return { vectorId, marketLabel: selectedMarket.label };
 }
 
+async function getLatestAvailableMonth(market: string, fuelType: FuelType) {
+  const selectedMarket = GAS_MARKETS[market as GasMarketKey];
+  if (!selectedMarket) {
+    throw new Error('Unsupported fuel market');
+  }
+
+  const response = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromCubePidCoordAndLatestNPeriods', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify([
+      {
+        productId: 18100001,
+        coordinate: buildCoordinate(selectedMarket.geographyMember, FUEL_MEMBER_BY_TYPE[fuelType]),
+        latestN: 1,
+      },
+    ]),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Statistics Canada lookup failed (${response.status})`);
+  }
+
+  const payload = (await response.json()) as StatCanCoordinateLatestResponse;
+  const latestPoint = payload[0]?.object?.vectorDataPoint?.[0];
+  if (!latestPoint?.refPerRaw) {
+    throw new Error('Statistics Canada latest month lookup did not return a reference period');
+  }
+
+  return latestPoint.refPerRaw;
+}
+
 async function fetchHistoricalRange(market: string, fuelType: FuelType, months: string[]) {
   const requestedMonths = getSortedMonthRange(months);
   if (requestedMonths.length === 0) return [];
 
+  const latestAvailableMonth = await getLatestAvailableMonth(market, fuelType);
+  const fetchableMonths = requestedMonths.filter((month) => month <= latestAvailableMonth);
+  if (fetchableMonths.length === 0) {
+    return [];
+  }
+
   const { vectorId } = await getVectorId(market, fuelType);
-  const firstMonth = requestedMonths[0];
-  const lastMonth = requestedMonths[requestedMonths.length - 1];
+  const firstMonth = fetchableMonths[0];
+  const lastMonth = fetchableMonths[fetchableMonths.length - 1];
   const url =
     `https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorByReferencePeriodRange` +
     `?vectorIds=%22${vectorId}%22&startRefPeriod=${firstMonth}&endReferencePeriod=${lastMonth}`;
@@ -119,7 +156,7 @@ async function fetchHistoricalRange(market: string, fuelType: FuelType, months: 
 
   const payload = (await response.json()) as StatCanVectorRangeResponse;
   const points = payload[0]?.object?.vectorDataPoint ?? [];
-  const requestedMonthSet = new Set(requestedMonths);
+  const requestedMonthSet = new Set(fetchableMonths);
   const rows = points
     .filter((point) => point.refPerRaw && requestedMonthSet.has(point.refPerRaw) && point.value !== undefined)
     .map((point) => ({
@@ -133,7 +170,7 @@ async function fetchHistoricalRange(market: string, fuelType: FuelType, months: 
     }));
 
   const foundMonths = new Set(rows.map((row) => row.month));
-  const missingMonths = requestedMonths.filter((month) => !foundMonths.has(month));
+  const missingMonths = fetchableMonths.filter((month) => !foundMonths.has(month));
   if (missingMonths.length > 0) {
     throw new Error(`Statistics Canada did not return monthly prices for: ${missingMonths.join(', ')}`);
   }
@@ -294,32 +331,17 @@ export const fetchCanadianAverage = action({
       throw new Error('Unsupported fuel market');
     }
 
-    const response = await fetch('https://www150.statcan.gc.ca/t1/wds/rest/getDataFromCubePidCoordAndLatestNPeriods', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify([
-        {
-          productId: 18100001,
-          coordinate: buildCoordinate(selectedMarket.geographyMember, FUEL_MEMBER_BY_TYPE[fuelType]),
-          latestN: 1,
-        },
-      ]),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Statistics Canada lookup failed (${response.status})`);
-    }
-
-    const payload = (await response.json()) as StatCanCoordinateLatestResponse;
-    const latestPoint = payload[0]?.object?.vectorDataPoint?.[0];
-    if (!latestPoint?.refPerRaw || latestPoint.value === undefined) {
+    const latestAvailableMonth = await getLatestAvailableMonth(market, fuelType);
+    const rows = await fetchHistoricalRange(market, fuelType, [latestAvailableMonth]);
+    const latestPoint = rows[0];
+    if (!latestPoint) {
       throw new Error('No Canadian fuel price average was available for that market');
     }
 
     return {
-      priceCadPerLitre: latestPoint.value / 100,
-      updatedAt: latestPoint.releaseTime ? new Date(latestPoint.releaseTime).getTime() : Date.now(),
-      effectiveMonth: latestPoint.refPerRaw,
+      priceCadPerLitre: latestPoint.priceCadPerLitre,
+      updatedAt: latestPoint.publishedAt,
+      effectiveMonth: latestPoint.month,
       market,
       marketLabel: selectedMarket.label,
       source: 'statcan' as const,

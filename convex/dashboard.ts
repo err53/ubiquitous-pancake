@@ -4,6 +4,18 @@ import { requireAuth } from './lib/auth';
 import { calcCostPerKm, calcDepreciation } from './lib/costCalc';
 import { buildHistoricalFuelEstimate, sortOdometerReadings, type OdometerPoint } from './lib/historicalFuel';
 
+function getPriceLookup(rows: { month: string; priceCadPerLitre: number }[]) {
+  const sorted = [...rows].sort((a, b) => a.month.localeCompare(b.month));
+  return (month: string) => {
+    let selected: number | undefined;
+    for (const row of sorted) {
+      if (row.month > month) break;
+      selected = row.priceCadPerLitre;
+    }
+    return selected;
+  };
+}
+
 function buildDailyCosts(
   sessions: { startedAt: number; cost: number }[],
   fuelEvents: { date: string; cost: number }[],
@@ -112,7 +124,7 @@ export const getVehicleDashboard = query({
             )
             .collect()
         : [];
-    const priceByMonth = new Map(cachedPrices.map((row) => [row.month, row.priceCadPerLitre]));
+    const getHistoricalPriceForMonth = getPriceLookup(cachedPrices);
 
     const estimatedFuel =
       usesHistoricalEstimate
@@ -121,7 +133,7 @@ export const getVehicleDashboard = query({
             from,
             to,
             fuelEfficiencyLPer100Km: vehicle.fuelEfficiencyLPer100Km!,
-            getPriceForMonth: (month) => priceByMonth.get(month),
+            getPriceForMonth: getHistoricalPriceForMonth,
           })
         : usesManualEstimate
           ? buildHistoricalFuelEstimate({
