@@ -11,12 +11,6 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 const workosApiHostname = import.meta.env.VITE_WORKOS_API_HOSTNAME;
 const useWorkosDevMode = !workosApiHostname || workosApiHostname === 'api.workos.com';
 
-declare global {
-  interface Window {
-    __WORKOS_DEBUG__?: Record<string, unknown>;
-  }
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
@@ -24,28 +18,6 @@ createRoot(document.getElementById('root')!).render(
         clientId={import.meta.env.VITE_WORKOS_CLIENT_ID}
         apiHostname={workosApiHostname}
         devMode={useWorkosDevMode}
-        onRedirectCallback={({ user }) => {
-          window.__WORKOS_DEBUG__ = {
-            ...(window.__WORKOS_DEBUG__ ?? {}),
-            onRedirectCallback: true,
-            userEmail: user.email,
-          };
-          window.location.replace('/vehicles');
-        }}
-        onRefresh={(response) => {
-          window.__WORKOS_DEBUG__ = {
-            ...(window.__WORKOS_DEBUG__ ?? {}),
-            onRefresh: true,
-            refreshUserEmail: response.user.email,
-          };
-        }}
-        onRefreshFailure={() => {
-          window.__WORKOS_DEBUG__ = {
-            ...(window.__WORKOS_DEBUG__ ?? {}),
-            onRefreshFailure: true,
-          };
-          console.error('WorkOS refresh failed');
-        }}
         redirectUri={import.meta.env.VITE_WORKOS_REDIRECT_URI}
       >
         <ConvexProviderWithAuthKit client={convex} useAuth={useAuth}>
