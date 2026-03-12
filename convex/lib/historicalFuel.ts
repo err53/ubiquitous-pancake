@@ -12,6 +12,7 @@ export interface DailyFuelCost {
 export interface HistoricalFuelEstimate {
   dailyCosts: DailyFuelCost[];
   totalCost: number;
+  totalKm: number;
   monthsNeeded: string[];
   missingMonths: string[];
 }
@@ -98,6 +99,7 @@ export function buildHistoricalFuelEstimate(args: {
   const monthsNeeded = new Set<string>();
   const missingMonths = new Set<string>();
   const dailyCosts = new Map<string, number>();
+  let totalKm = 0;
   const sorted = sortOdometerReadings(args.readings);
 
   for (let i = 1; i < sorted.length; i += 1) {
@@ -116,6 +118,7 @@ export function buildHistoricalFuelEstimate(args: {
       }
 
       const segmentKm = deltaKm * weight;
+      totalKm += segmentKm;
       const cost = ((segmentKm * args.fuelEfficiencyLPer100Km) / 100) * price;
       const day = new Date(getUtcDayStart(segmentStart)).toISOString().slice(0, 10);
       dailyCosts.set(day, (dailyCosts.get(day) ?? 0) + cost);
@@ -129,6 +132,7 @@ export function buildHistoricalFuelEstimate(args: {
   return {
     dailyCosts: daily,
     totalCost: daily.reduce((sum, entry) => sum + entry.cost, 0),
+    totalKm,
     monthsNeeded: [...monthsNeeded].sort(),
     missingMonths: [...missingMonths].sort(),
   };

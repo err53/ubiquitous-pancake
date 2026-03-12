@@ -124,3 +124,47 @@ test('dashboard uses cached monthly fuel prices in historical market mode', asyn
   expect(dashboard.operatingCostTotal).toBeCloseTo(24, 5);
   expect(dashboard.missingFuelPriceMonths).toHaveLength(0);
 });
+
+test('dashboard computes km driven for historical estimates when range has one in-range reading', async () => {
+  const t = convexTest(schema, modules);
+  const authed = t.withIdentity({ subject: 'user_test' });
+  const purchaseDate = new Date('2025-01-01T00:00:00Z').getTime();
+  const secondReadingDate = new Date('2025-02-01T00:00:00Z').getTime();
+  const rangeStart = new Date('2025-01-15T00:00:00Z').getTime();
+  const rangeEnd = new Date('2025-02-15T00:00:00Z').getTime();
+
+  const vehicleId = await authed.mutation(api.vehicles.register, {
+    type: 'gas',
+    make: 'Honda',
+    model: 'Civic',
+    year: 2022,
+    purchasePrice: 30000,
+    purchaseDate,
+    initialOdometer: 1000,
+  });
+
+  await authed.mutation(api.vehicles.updateFuelPreferences, {
+    id: vehicleId,
+    fuelCostMode: 'estimated_historical',
+    fuelEfficiencyLPer100Km: 10,
+    fuelPriceMarket: 'canada',
+    fuelPriceOverrideMode: 'fixed_manual',
+    fuelPriceManualOverrideCadPerLitre: 1.5,
+    fuelType: 'regular',
+  });
+
+  await authed.mutation(api.odometer.addManualReading, {
+    vehicleId,
+    date: secondReadingDate,
+    odometer: 1300,
+  });
+
+  const dashboard = await authed.query(api.dashboard.getVehicleDashboard, {
+    vehicleId,
+    from: rangeStart,
+    to: rangeEnd,
+  });
+
+  expect(dashboard.kmDriven).toBeCloseTo(164.516129, 5);
+  expect(dashboard.operatingCostPerKm).toBeCloseTo(0.15, 5);
+});

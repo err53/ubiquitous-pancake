@@ -88,16 +88,6 @@ export const getVehicleDashboard = query({
     const filteredSessions = inRange(chargingSessions);
     const filteredFillUps = inRange(fillUps);
     const filteredMaintenance = inRange(maintenance);
-    const rangeOdometerReadings = allOdometer.filter(
-      (reading) => (from === undefined || reading.date >= from) && (to === undefined || reading.date <= to),
-    );
-    const odometerReadings = sortOdometerReadings(rangeOdometerReadings as OdometerPoint[]);
-
-    const kmDriven =
-      odometerReadings.length >= 2
-        ? odometerReadings[odometerReadings.length - 1].odometer - odometerReadings[0].odometer
-        : null;
-
     const usesHistoricalEstimate =
       vehicle.type === 'gas' &&
       vehicle.fuelCostMode === 'estimated_historical' &&
@@ -145,6 +135,16 @@ export const getVehicleDashboard = query({
 
     const historicalFuelStatus =
       estimatedFuel && estimatedFuel.missingMonths.length > 0 ? 'missing_prices' : 'ready';
+
+    const rangeOdometerReadings = allOdometer.filter(
+      (reading) => (from === undefined || reading.date >= from) && (to === undefined || reading.date <= to),
+    );
+    const odometerReadings = sortOdometerReadings(rangeOdometerReadings as OdometerPoint[]);
+    const rawKmDriven =
+      odometerReadings.length >= 2
+        ? odometerReadings[odometerReadings.length - 1].odometer - odometerReadings[0].odometer
+        : null;
+    const kmDriven = estimatedFuel ? estimatedFuel.totalKm : rawKmDriven;
 
     const operatingCostTotal =
       historicalFuelStatus === 'missing_prices'
