@@ -32,27 +32,26 @@ function SignInButton() {
 
 export default function App() {
   return (
-    <>
+    <BrowserRouter>
       <Unauthenticated>
         <div className="flex h-screen items-center justify-center">
           <SignInButton />
         </div>
       </Unauthenticated>
       <Authenticated>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<AppLayout />}>
-              <Route index element={<Navigate to="/vehicles" replace />} />
-              <Route path="vehicles" element={<VehiclesPage />} />
-              <Route path="vehicles/:id" element={<VehicleDetailPage />} />
-              <Route path="compare" element={<ComparisonPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              {/* More routes added per chunk */}
-              <Route path="*" element={<div className="p-4 text-muted-foreground">Page not found</div>} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <Routes>
+          <Route path="/callback" element={<Navigate to="/vehicles" replace />} />
+          <Route path="/" element={<AppLayout />}>
+            <Route index element={<Navigate to="/vehicles" replace />} />
+            <Route path="vehicles" element={<VehiclesPage />} />
+            <Route path="vehicles/:id" element={<VehicleDetailPage />} />
+            <Route path="compare" element={<ComparisonPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            {/* More routes added per chunk */}
+            <Route path="*" element={<div className="p-4 text-muted-foreground">Page not found</div>} />
+          </Route>
+        </Routes>
       </Authenticated>
-    </>
+    </BrowserRouter>
   );
 }
