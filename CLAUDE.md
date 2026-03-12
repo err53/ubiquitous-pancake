@@ -33,14 +33,14 @@ bun run preview      # Preview production build
 
 ### Auth flow
 
-1. WorkOS AuthKit handles magic-link login (email-based, admin allowlist)
+1. WorkOS AuthKit handles magic-link login for invited users
 2. `src/ConvexProviderWithAuthKit.tsx` bridges `useAuth()` from WorkOS to Convex
 3. `convex/auth.config.ts` configures two WorkOS JWT providers (SSO + User Management)
 4. Convex functions access the user via `ctx.auth.getUserIdentity()`
 
 ### Data model
 
-Defined in `convex/schema.ts`. Currently a template (`numbers` table). The full schema will need tables for: vehicles, charging sessions, gas fill-ups, maintenance records, odometer readings, market valuations, sync logs, email allowlist, and EV provider credentials.
+Defined in `convex/schema.ts`. Currently a template (`numbers` table). The full schema will need tables for: vehicles, charging sessions, gas fill-ups, maintenance records, odometer readings, market valuations, sync logs, and EV provider credentials.
 
 ### EV provider integration
 

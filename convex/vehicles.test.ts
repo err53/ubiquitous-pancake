@@ -8,14 +8,7 @@ const modules = import.meta.glob('./**/*.*s');
 
 test('register vehicle inserts initial odometer reading', async () => {
   const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'test@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
-  });
-  const authed = t.withIdentity({ email: 'test@example.com' });
+  const authed = t.withIdentity({ subject: 'user_test' });
   const vehicleId = await authed.mutation(api.vehicles.register, {
     type: 'gas',
     make: 'Toyota',
@@ -38,14 +31,7 @@ test('register vehicle inserts initial odometer reading', async () => {
 
 test('soft delete sets removedAt', async () => {
   const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    await ctx.db.insert('allowlist', {
-      email: 'test@example.com',
-      isAdmin: false,
-      addedAt: Date.now(),
-    });
-  });
-  const authed = t.withIdentity({ email: 'test@example.com' });
+  const authed = t.withIdentity({ subject: 'user_test' });
   const vehicleId = await authed.mutation(api.vehicles.register, {
     type: 'gas',
     make: 'Toyota',

@@ -7,7 +7,7 @@ a mix of electric and gas vehicles.
 
 ## Users
 A small closed group of trusted users sharing a single pool of vehicle and cost data.
-Access is controlled by an admin-maintained email allowlist.
+Access is controlled by admin-issued invitations through the auth provider.
 
 ---
 
@@ -16,8 +16,8 @@ Access is controlled by an admin-maintained email allowlist.
 ### Authentication & Access Control
 - FR1: The app is accessible only to authenticated users; all pages redirect to a login screen if no valid session exists
 - FR2: Login is via magic link — the user enters their email and receives a time-limited login link; no password is required
-- FR3: Only email addresses on an admin-maintained allowlist can successfully authenticate; magic links sent to non-allowlisted emails must show a generic "check your email" message with no indication of allowlist status
-- FR4: The admin can add and remove email addresses from the allowlist
+- FR3: Self-service signup is disabled; only users invited by an admin through the auth provider can create accounts
+- FR4: Admins can create and revoke invitations for new users outside the app through the auth provider
 - FR5: Sessions expire after 30 days of inactivity
 - FR6: All vehicle, cost, and depreciation data is shared across all authenticated users — there is no per-user data isolation
 
@@ -89,8 +89,8 @@ Access is controlled by an admin-maintained email allowlist.
 - NFR7: API credentials must be stored encrypted at rest, not in plaintext
 - NFR8: The sync endpoint must be protected against unauthenticated external invocation regardless of the session auth mechanism
 - NFR9: Magic links must be single-use and expire after 15 minutes
-- NFR10: The allowlist must not be modifiable by non-admin users
-- NFR11: No information about whether an email is on the allowlist should be exposed to unauthenticated users
+- NFR10: Invitation management must not be available to non-admin users
+- NFR11: No information about whether an email is eligible for an invitation should be exposed to unauthenticated users
 
 ### Maintainability
 - NFR12: The data model must support additional vehicle types beyond Electric and Gas without destructive migrations
@@ -111,7 +111,7 @@ Access is controlled by an admin-maintained email allowlist.
 - **Default time range:** 30 days, with user-selectable presets (7d, 90d, 6mo, 1yr, all time)
 - **Gas vehicle data entry:** Manual only
 - **Auth method:** Magic link (email)
-- **Access control:** Admin-maintained email allowlist
+- **Access control:** Admin-issued invitations via auth provider
 - **Data visibility:** Shared across all authenticated users
 
 ---

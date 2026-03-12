@@ -36,14 +36,6 @@ export const updateCredential = internalMutation({
   },
 });
 
-// Internal: check user role by WorkOS user ID (subject)
-export const getUserRole = internalQuery({
-  args: { subject: v.string() },
-  handler: async (ctx, { subject }) => {
-    return ctx.db.query('allowlist').withIndex('by_subject', (q) => q.eq('subject', subject)).unique();
-  },
-});
-
 // Public query: check if credentials are configured (for UI)
 export const hasEvCredentials = query({
   args: {},
