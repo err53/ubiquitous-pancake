@@ -43,27 +43,39 @@ export function SettingsPage() {
           <CardTitle>Tessie API Credentials</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {hasCredentials && (
-            <p className="text-sm text-green-600 dark:text-green-400">
-              ✓ API token is configured. Enter a new token below to replace it.
-            </p>
+          {hasCredentials === undefined ? (
+            <p className="text-sm text-muted-foreground">Loading credential status...</p>
+          ) : (
+            <>
+              <p
+                className={
+                  hasCredentials
+                    ? 'text-sm text-green-600 dark:text-green-400'
+                    : 'text-sm text-amber-600 dark:text-amber-400'
+                }
+              >
+                {hasCredentials
+                  ? 'API token is configured. Enter a new token below to replace it.'
+                  : 'No Tessie API token is configured yet.'}
+              </p>
+              <div className="space-y-2">
+                <Label>API Token</Label>
+                <Input
+                  type="password"
+                  placeholder="Tessie API token"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  autoComplete="off"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Token is stored encrypted and never displayed after saving.
+                </p>
+              </div>
+              <Button onClick={() => void handleSave()} disabled={!token || saving}>
+                {saving ? 'Saving…' : 'Save Token'}
+              </Button>
+            </>
           )}
-          <div className="space-y-2">
-            <Label>API Token</Label>
-            <Input
-              type="password"
-              placeholder="Tessie API token"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              autoComplete="off"
-            />
-            <p className="text-xs text-muted-foreground">
-              Token is stored encrypted and never displayed after saving.
-            </p>
-          </div>
-          <Button onClick={() => void handleSave()} disabled={!token || saving}>
-            {saving ? 'Saving…' : 'Save Token'}
-          </Button>
         </CardContent>
       </Card>
 

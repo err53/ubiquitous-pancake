@@ -24,7 +24,7 @@ function SignInButton() {
         Track your vehicle operating costs. Access is invite-only.
       </p>
       <Button size="lg" onClick={() => void signIn()}>
-        Sign in with magic link
+        Sign in
       </Button>
     </div>
   );

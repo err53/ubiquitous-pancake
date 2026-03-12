@@ -45,3 +45,20 @@ test('soft delete sets removedAt', async () => {
   const vehicles = await authed.query(api.vehicles.list);
   expect(vehicles.find((v) => v._id === vehicleId)).toBeUndefined();
 });
+
+test('triggerSync rejects unauthenticated users', async () => {
+  const t = convexTest(schema, modules);
+  const allowedUser = t.withIdentity({ subject: 'user_test' });
+  const vehicleId = await allowedUser.mutation(api.vehicles.register, {
+    type: 'electric',
+    make: 'Tesla',
+    model: 'Model 3',
+    year: 2024,
+    purchasePrice: 50000,
+    purchaseDate: Date.now(),
+    initialOdometer: 100,
+    vin: '5YJ3E1EA0JF000001',
+  });
+
+  await expect(t.action(api.vehicles.triggerSync, { vehicleId })).rejects.toThrow('Unauthenticated');
+});

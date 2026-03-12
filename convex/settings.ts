@@ -36,7 +36,6 @@ export const updateCredential = internalMutation({
   },
 });
 
-// Public query: check if credentials are configured (for UI)
 export const hasEvCredentials = query({
   args: {},
   handler: async (ctx) => {
