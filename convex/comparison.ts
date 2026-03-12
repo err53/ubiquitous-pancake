@@ -4,6 +4,10 @@ import { Id } from './_generated/dataModel';
 import { requireAuth } from './lib/auth';
 import { calcCostPerKm, calcDepreciation } from './lib/costCalc';
 
+function sortOdometerReadings<T extends { date: number; _creationTime: number }>(readings: T[]) {
+  return [...readings].sort((a, b) => a.date - b.date || a._creationTime - b._creationTime);
+}
+
 async function getVehicleMetrics(
   ctx: QueryCtx,
   vehicleId: string,
@@ -44,6 +48,7 @@ async function getVehicleMetrics(
     .collect();
   if (from !== undefined) odometerReadings = odometerReadings.filter((r) => r.date >= from);
   if (to !== undefined) odometerReadings = odometerReadings.filter((r) => r.date <= to);
+  odometerReadings = sortOdometerReadings(odometerReadings);
 
   const kmDriven =
     odometerReadings.length >= 2
@@ -61,9 +66,10 @@ async function getVehicleMetrics(
     .withIndex('by_vehicle_date', (q) => q.eq('vehicleId', vid))
     .order('asc')
     .collect();
+  const sortedAllOdometer = sortOdometerReadings(allOdometer);
   const totalKm =
-    allOdometer.length >= 2
-      ? allOdometer[allOdometer.length - 1].odometer - allOdometer[0].odometer
+    sortedAllOdometer.length >= 2
+      ? sortedAllOdometer[sortedAllOdometer.length - 1].odometer - sortedAllOdometer[0].odometer
       : 0;
 
   const depreciation = latestValuation

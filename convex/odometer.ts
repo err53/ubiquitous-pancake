@@ -2,15 +2,20 @@ import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { requireAuth } from './lib/auth';
 
+function sortOdometerReadings<T extends { date: number; _creationTime: number }>(readings: T[]) {
+  return [...readings].sort((a, b) => a.date - b.date || a._creationTime - b._creationTime);
+}
+
 export const listReadings = query({
   args: { vehicleId: v.id('vehicles') },
   handler: async (ctx, { vehicleId }) => {
     await requireAuth(ctx);
-    return ctx.db
+    const readings = await ctx.db
       .query('odometerReadings')
       .withIndex('by_vehicle_date', (q) => q.eq('vehicleId', vehicleId))
       .order('asc')
       .collect();
+    return sortOdometerReadings(readings);
   },
 });
 
@@ -60,6 +65,7 @@ export const getRange = query({
       .collect();
     if (from !== undefined) readings = readings.filter((r) => r.date >= from);
     if (to !== undefined) readings = readings.filter((r) => r.date <= to);
+    readings = sortOdometerReadings(readings);
     if (readings.length < 2) return null;
     return {
       earliest: readings[0].odometer,
