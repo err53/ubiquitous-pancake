@@ -35,6 +35,10 @@ function AuthScreen({ children }: { children: ReactNode }) {
 }
 
 function CallbackPage() {
+  const { isLoading, user } = useAuth();
+  const hasRefreshToken =
+    typeof window !== 'undefined' && window.localStorage.getItem('workos:refresh-token') !== null;
+
   return (
     <AuthScreen>
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
@@ -42,6 +46,11 @@ function CallbackPage() {
         <p className="text-sm text-muted-foreground">
           If this page does not advance, the WorkOS code exchange failed in the browser.
         </p>
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-left text-xs text-muted-foreground">
+          <div>workosLoading: {String(isLoading)}</div>
+          <div>workosUser: {user ? 'present' : 'missing'}</div>
+          <div>refreshToken: {hasRefreshToken ? 'present' : 'missing'}</div>
+        </div>
         <Button variant="outline" onClick={() => window.location.assign('/login')}>
           Start over
         </Button>
