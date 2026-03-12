@@ -4,25 +4,52 @@ import { Id } from '../../convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-export function OdometerEntry({ vehicleId, onSuccess }: { vehicleId: Id<'vehicles'>; onSuccess: () => void }) {
+export function OdometerEntry({
+  vehicleId,
+  editId,
+  initialValues,
+  onSuccess,
+}: {
+  vehicleId: Id<'vehicles'>;
+  editId?: Id<'odometerReadings'>;
+  initialValues?: { date: number; odometer: number };
+  onSuccess: () => void;
+}) {
   const addReading = useMutation(api.odometer.addManualReading);
+  const updateReading = useMutation(api.odometer.updateManualReading);
   const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    odometer: 0,
+    date: initialValues ? new Date(initialValues.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    odometer: initialValues?.odometer ?? 0,
   });
+
+  useEffect(() => {
+    setForm({
+      date: initialValues ? new Date(initialValues.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      odometer: initialValues?.odometer ?? 0,
+    });
+  }, [initialValues]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addReading({
-        vehicleId,
-        date: new Date(form.date).getTime(),
-        odometer: form.odometer,
-      });
-      toast.success('Odometer reading saved');
+      if (editId) {
+        await updateReading({
+          id: editId,
+          date: new Date(form.date).getTime(),
+          odometer: form.odometer,
+        });
+        toast.success('Odometer reading updated');
+      } else {
+        await addReading({
+          vehicleId,
+          date: new Date(form.date).getTime(),
+          odometer: form.odometer,
+        });
+        toast.success('Odometer reading saved');
+      }
       onSuccess();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save reading');
@@ -45,7 +72,7 @@ export function OdometerEntry({ vehicleId, onSuccess }: { vehicleId: Id<'vehicle
           required
         />
       </div>
-      <Button type="submit" className="w-full">Save Reading</Button>
+      <Button type="submit" className="w-full">{editId ? 'Update Reading' : 'Save Reading'}</Button>
     </form>
   );
 }

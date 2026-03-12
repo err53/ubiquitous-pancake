@@ -10,6 +10,22 @@ export const addValuation = mutation({
   },
 });
 
+export const updateValuation = mutation({
+  args: { id: v.id('marketValuations'), date: v.number(), valuationCAD: v.number() },
+  handler: async (ctx, { id, ...fields }) => {
+    await requireAuth(ctx);
+    await ctx.db.patch(id, fields);
+  },
+});
+
+export const deleteValuation = mutation({
+  args: { id: v.id('marketValuations') },
+  handler: async (ctx, { id }) => {
+    await requireAuth(ctx);
+    await ctx.db.delete(id);
+  },
+});
+
 export const listValuations = query({
   args: { vehicleId: v.id('vehicles') },
   handler: async (ctx, { vehicleId }) => {

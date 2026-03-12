@@ -52,7 +52,7 @@ export default defineSchema({
     vehicleId: v.id('vehicles'),
     date: v.number(), // Unix ms
     odometer: v.number(), // km
-    source: v.union(v.literal('manual'), v.literal('charging_session'), v.literal('fill_up')),
+    source: v.union(v.literal('manual'), v.literal('charging_session'), v.literal('fill_up'), v.literal('maintenance')),
   })
     .index('by_vehicle', ['vehicleId'])
     .index('by_vehicle_date', ['vehicleId', 'date']),

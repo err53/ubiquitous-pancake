@@ -22,6 +22,28 @@ export const addManualReading = mutation({
   },
 });
 
+export const updateManualReading = mutation({
+  args: { id: v.id('odometerReadings'), date: v.number(), odometer: v.number() },
+  handler: async (ctx, { id, ...fields }) => {
+    await requireAuth(ctx);
+    const reading = await ctx.db.get(id);
+    if (!reading) throw new Error('Odometer reading not found');
+    if (reading.source !== 'manual') throw new Error('Only manual odometer readings can be edited here');
+    await ctx.db.patch(id, fields);
+  },
+});
+
+export const deleteManualReading = mutation({
+  args: { id: v.id('odometerReadings') },
+  handler: async (ctx, { id }) => {
+    await requireAuth(ctx);
+    const reading = await ctx.db.get(id);
+    if (!reading) throw new Error('Odometer reading not found');
+    if (reading.source !== 'manual') throw new Error('Only manual odometer readings can be deleted here');
+    await ctx.db.delete(id);
+  },
+});
+
 // Returns earliest and latest odometer in a date range
 export const getRange = query({
   args: {

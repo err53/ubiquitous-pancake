@@ -140,9 +140,11 @@ export const getVehicleDashboard = query({
     return {
       vehicle,
       kmDriven,
+      totalKm,
       operatingCostTotal,
       operatingCostPerKm,
       depreciation,
+      latestValuation,
       totalCostPerKm,
       dailyCosts,
       mostRecentEvent,
