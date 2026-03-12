@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as allowlist from "../allowlist.js";
 import type * as comparison from "../comparison.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
@@ -35,7 +34,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  allowlist: typeof allowlist;
   comparison: typeof comparison;
   crons: typeof crons;
   dashboard: typeof dashboard;
