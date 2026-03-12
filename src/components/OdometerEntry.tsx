@@ -4,7 +4,7 @@ import { Id } from '../../convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 export function OdometerEntry({
@@ -24,13 +24,6 @@ export function OdometerEntry({
     date: initialValues ? new Date(initialValues.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
     odometer: initialValues?.odometer ?? 0,
   });
-
-  useEffect(() => {
-    setForm({
-      date: initialValues ? new Date(initialValues.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-      odometer: initialValues?.odometer ?? 0,
-    });
-  }, [initialValues]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

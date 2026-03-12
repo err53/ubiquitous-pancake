@@ -105,3 +105,29 @@ test('deleting maintenance removes its odometer reading', async () => {
   expect(readings).toHaveLength(1);
   expect(readings.every((r) => r.source !== 'maintenance')).toBe(true);
 });
+
+test('addFillUp rejects vehicles in estimated fuel mode', async () => {
+  const t = convexTest(schema, modules);
+  const authed = await seedAllowlist(t);
+  const vehicleId = await authed.mutation(api.vehicles.register, {
+    type: 'gas', make: 'Toyota', model: 'Corolla', year: 2020,
+    purchasePrice: 25000, purchaseDate: Date.now(), initialOdometer: 1000,
+  });
+
+  await authed.mutation(api.vehicles.updateFuelPreferences, {
+    id: vehicleId,
+    fuelCostMode: 'estimated',
+    fuelEfficiencyLPer100Km: 7.5,
+    fuelPriceCadPerLitre: 1.6,
+    fuelPriceSource: 'manual',
+    fuelPriceUpdatedAt: Date.now(),
+    fuelPriceMarket: 'canada',
+    fuelType: 'regular',
+  });
+
+  await expect(
+    authed.mutation(api.gasData.addFillUp, {
+      vehicleId, date: Date.now(), odometer: 1200, volumeLitres: 40, cost: 80,
+    }),
+  ).rejects.toThrow('Manual fill-ups are disabled for this vehicle');
+});

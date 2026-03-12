@@ -40,8 +40,8 @@ export function MetricsPanel({
         value={cadPerKm(operatingCostPerKm)}
         sub={`${cad(operatingCostTotal)} total`}
       />
-      <MetricCard label="Depreciation/km" value={cadPerKm(depreciationPerKm)} />
-      <MetricCard label="Total cost/km" value={cadPerKm(totalCostPerKm)} />
+      <MetricCard label="Lifetime depreciation/km" value={cadPerKm(depreciationPerKm)} />
+      <MetricCard label="Blended total cost/km" value={cadPerKm(totalCostPerKm)} />
     </div>
   );
 }

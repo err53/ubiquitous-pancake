@@ -15,6 +15,8 @@ import { OdometerEntry } from '@/components/OdometerEntry';
 import { DepreciationEntry } from '@/components/DepreciationEntry';
 import { OdometerHistory } from '@/components/OdometerHistory';
 import { ValuationHistory } from '@/components/ValuationHistory';
+import { GasCostPreferences } from '@/components/GasCostPreferences';
+import { gasMarkets } from '@/lib/gasMarkets';
 import { getDateRange, type TimeRange } from '@/lib/dates';
 import { cad } from '@/lib/formatters';
 import { format } from 'date-fns';
@@ -50,6 +52,12 @@ export function VehicleDetailPage() {
     from: dateRange?.from,
     to: dateRange?.to,
   });
+  const isEstimatedGasMode = vehicle?.type === 'gas' && (vehicle.fuelCostMode ?? 'manual_fillups') === 'estimated';
+  const estimatedFuelMarketLabel =
+    dashboard?.estimatedFuelPriceMarket === null || dashboard?.estimatedFuelPriceMarket === undefined
+      ? null
+      : gasMarkets.find((market) => market.key === dashboard.estimatedFuelPriceMarket)?.label ??
+        dashboard.estimatedFuelPriceMarket;
 
   if (!vehicle || fillUps === undefined || maintenance === undefined || odometerReadings === undefined || valuations === undefined) {
     return <div className="text-muted-foreground">Loading...</div>;
@@ -140,7 +148,7 @@ export function VehicleDetailPage() {
       <Tabs defaultValue="dashboard">
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          {vehicle.type === 'gas' && <TabsTrigger value="fillups">Fill-ups</TabsTrigger>}
+          {vehicle.type === 'gas' && !isEstimatedGasMode && <TabsTrigger value="fillups">Fill-ups</TabsTrigger>}
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
         </TabsList>
 
@@ -167,6 +175,7 @@ export function VehicleDetailPage() {
                 depreciationPerKm={dashboard.depreciation?.perKm ?? null}
                 totalCostPerKm={dashboard.totalCostPerKm}
               />
+              {vehicle.type === 'gas' && <GasCostPreferences vehicle={vehicle} />}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-md border p-4 text-sm">
                   <p className="font-medium">Depreciation basis</p>
@@ -177,13 +186,21 @@ export function VehicleDetailPage() {
                       <p>Total depreciation: {cad(dashboard.depreciation?.totalCAD ?? 0)}</p>
                       <p>Monthly depreciation: {cad(dashboard.depreciation?.monthlyCAD ?? 0)}</p>
                       <p>All-time km used: {dashboard.totalKm.toLocaleString('en-CA')} km</p>
+                      {dashboard.fuelCostMode === 'estimated' && dashboard.estimatedFuelPriceCadPerLitre !== null && (
+                        <p>
+                          Estimated fuel price: {cad(dashboard.estimatedFuelPriceCadPerLitre)} / L
+                        </p>
+                      )}
+                      {dashboard.fuelCostMode === 'estimated' && estimatedFuelMarketLabel && (
+                        <p>Estimated fuel market: {estimatedFuelMarketLabel}</p>
+                      )}
                     </div>
                   ) : (
                     <p className="mt-2 text-muted-foreground">Add a valuation entry to calculate depreciation.</p>
                   )}
                 </div>
                 <div className="rounded-md border p-4 text-sm">
-                  <p className="font-medium">Most recent event</p>
+                  <p className="font-medium">Most recent charge or fill-up</p>
                   {dashboard.mostRecentEvent ? (
                     <p className="text-muted-foreground mt-2">
                       {format(dashboard.mostRecentEvent.date, 'PPP')} ·{' '}
@@ -252,6 +269,7 @@ export function VehicleDetailPage() {
               <DialogHeader><DialogTitle>{odometerDialog === 'add' ? 'Add Odometer Reading' : 'Edit Odometer Reading'}</DialogTitle></DialogHeader>
               {odometerDialog !== null && (
                 <OdometerEntry
+                  key={odometerDialog}
                   vehicleId={vehicleId}
                   editId={odometerDialog !== 'add' ? odometerDialog : undefined}
                   initialValues={
@@ -273,6 +291,7 @@ export function VehicleDetailPage() {
               <DialogHeader><DialogTitle>{depreciationDialog === 'add' ? 'Add Market Valuation' : 'Edit Market Valuation'}</DialogTitle></DialogHeader>
               {depreciationDialog !== null && (
                 <DepreciationEntry
+                  key={depreciationDialog}
                   vehicleId={vehicleId}
                   editId={depreciationDialog !== 'add' ? depreciationDialog : undefined}
                   initialValues={
@@ -290,7 +309,7 @@ export function VehicleDetailPage() {
           </Dialog>
         </TabsContent>
 
-        {vehicle.type === 'gas' && (
+        {vehicle.type === 'gas' && !isEstimatedGasMode && (
           <TabsContent value="fillups" className="mt-4 space-y-4">
             <Button onClick={() => setFillUpDialog('add')}>Add Fill-up</Button>
             <CostEventList

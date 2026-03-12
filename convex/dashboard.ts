@@ -25,6 +25,33 @@ function buildDailyCosts(
     .map(([date, cost]) => ({ date, cost }));
 }
 
+function buildEstimatedFuelCosts(
+  readings: { date: number; odometer: number; _creationTime: number }[],
+  fuelEfficiencyLPer100Km: number,
+  fuelPriceCadPerLitre: number,
+  from: number | undefined,
+  to: number | undefined,
+) {
+  const sorted = sortOdometerReadings(readings)
+    .filter((reading) => to === undefined || reading.date <= to);
+  const estimatedEvents: { date: number; cost: number }[] = [];
+
+  for (let i = 1; i < sorted.length; i += 1) {
+    const previous = sorted[i - 1];
+    const current = sorted[i];
+    if (from !== undefined && current.date < from) continue;
+    const deltaKm = current.odometer - previous.odometer;
+    if (deltaKm <= 0) continue;
+    const litres = (deltaKm * fuelEfficiencyLPer100Km) / 100;
+    estimatedEvents.push({
+      date: current.date,
+      cost: litres * fuelPriceCadPerLitre,
+    });
+  }
+
+  return estimatedEvents;
+}
+
 function getMostRecentEvent(
   sessions: { startedAt: number; cost: number; odometer?: number | null }[],
   fillUps: { date: number; cost: number; odometer: number }[],
@@ -85,10 +112,29 @@ export const getVehicleDashboard = query({
     const filteredSessions = inRange(chargingSessions);
     const filteredFillUps = inRange(fillUps);
     const filteredMaintenance = inRange(maintenance);
+    const estimatedFuelEvents =
+      vehicle.type === 'gas' &&
+      vehicle.fuelCostMode === 'estimated' &&
+      vehicle.fuelEfficiencyLPer100Km !== undefined &&
+      vehicle.fuelPriceCadPerLitre !== undefined
+        ? buildEstimatedFuelCosts(
+            await ctx.db
+              .query('odometerReadings')
+              .withIndex('by_vehicle_date', (q) => q.eq('vehicleId', vehicleId))
+              .order('asc')
+              .collect(),
+            vehicle.fuelEfficiencyLPer100Km,
+            vehicle.fuelPriceCadPerLitre,
+            from,
+            to,
+          )
+        : [];
 
     const operatingCostTotal =
       filteredSessions.reduce((s, c) => s + c.cost, 0) +
-      filteredFillUps.reduce((s, f) => s + f.cost, 0) +
+      (vehicle.type === 'gas' && vehicle.fuelCostMode === 'estimated'
+        ? estimatedFuelEvents.reduce((sum, event) => sum + event.cost, 0)
+        : filteredFillUps.reduce((s, f) => s + f.cost, 0)) +
       filteredMaintenance.reduce((s, m) => s + m.cost, 0);
 
     // Odometer range in the selected time window
@@ -134,7 +180,13 @@ export const getVehicleDashboard = query({
         })
       : null;
 
-    const dailyCosts = buildDailyCosts(filteredSessions, filteredFillUps, filteredMaintenance);
+    const dailyCosts = buildDailyCosts(
+      filteredSessions,
+      vehicle.type === 'gas' && vehicle.fuelCostMode === 'estimated'
+        ? estimatedFuelEvents.map((event) => ({ date: event.date, cost: event.cost }))
+        : filteredFillUps,
+      filteredMaintenance,
+    );
     const mostRecentEvent = getMostRecentEvent(chargingSessions, fillUps);
 
     const operatingCostPerKm = kmDriven !== null ? calcCostPerKm(operatingCostTotal, kmDriven) : null;
@@ -151,6 +203,10 @@ export const getVehicleDashboard = query({
       operatingCostPerKm,
       depreciation,
       latestValuation,
+      estimatedFuelPriceCadPerLitre: vehicle.fuelPriceCadPerLitre ?? null,
+      estimatedFuelPriceUpdatedAt: vehicle.fuelPriceUpdatedAt ?? null,
+      estimatedFuelPriceMarket: vehicle.fuelPriceMarket ?? null,
+      fuelCostMode: vehicle.fuelCostMode ?? 'manual_fillups',
       totalCostPerKm,
       dailyCosts,
       mostRecentEvent,

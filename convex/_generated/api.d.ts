@@ -17,6 +17,7 @@ import type * as ev_sync from "../ev/sync.js";
 import type * as ev_syncAll from "../ev/syncAll.js";
 import type * as ev_tessie from "../ev/tessie.js";
 import type * as gasData from "../gasData.js";
+import type * as gasPrices from "../gasPrices.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_costCalc from "../lib/costCalc.js";
 import type * as lib_crypto from "../lib/crypto.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "ev/syncAll": typeof ev_syncAll;
   "ev/tessie": typeof ev_tessie;
   gasData: typeof gasData;
+  gasPrices: typeof gasPrices;
   "lib/auth": typeof lib_auth;
   "lib/costCalc": typeof lib_costCalc;
   "lib/crypto": typeof lib_crypto;

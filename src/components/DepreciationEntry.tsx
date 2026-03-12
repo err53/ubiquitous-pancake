@@ -4,7 +4,7 @@ import { Id } from '../../convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 export function DepreciationEntry({
@@ -24,13 +24,6 @@ export function DepreciationEntry({
     date: initialValues ? new Date(initialValues.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
     valuationCAD: initialValues?.valuationCAD ?? 0,
   });
-
-  useEffect(() => {
-    setForm({
-      date: initialValues ? new Date(initialValues.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-      valuationCAD: initialValues?.valuationCAD ?? 0,
-    });
-  }, [initialValues]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -118,7 +118,7 @@ export function AddVehicleForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
       <div className="space-y-2">
-        <Label>Current Odometer (km)</Label>
+        <Label>Odometer at Purchase (km)</Label>
         <Input
           type="number"
           value={form.initialOdometer}
@@ -126,6 +126,9 @@ export function AddVehicleForm({ onSuccess }: { onSuccess: () => void }) {
           min={0}
           required
         />
+        <p className="text-xs text-muted-foreground">
+          This is recorded as the odometer reading on the purchase date.
+        </p>
       </div>
       {form.type === 'electric' && (
         <div className="space-y-2">

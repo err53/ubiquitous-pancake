@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cad } from '@/lib/formatters';
@@ -29,10 +29,6 @@ export function CostEventList({ events, onEdit, onDelete, emptyMessage = 'No rec
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const pageEvents = sorted.slice(pageStart, pageStart + PAGE_SIZE);
-
-  useEffect(() => {
-    setPage(1);
-  }, [events.length]);
 
   if (events.length === 0) {
     return <p className="text-muted-foreground text-sm">{emptyMessage}</p>;

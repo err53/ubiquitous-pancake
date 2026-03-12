@@ -35,7 +35,12 @@ export const register = mutation({
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx);
-    const vehicleId = await ctx.db.insert('vehicles', args);
+    const vehicleId = await ctx.db.insert('vehicles', {
+      ...args,
+      fuelCostMode: args.type === 'gas' ? 'manual_fillups' : undefined,
+      fuelPriceMarket: args.type === 'gas' ? 'canada' : undefined,
+      fuelType: args.type === 'gas' ? 'regular' : undefined,
+    });
     // Record initial odometer reading
     await ctx.db.insert('odometerReadings', {
       vehicleId,
@@ -44,6 +49,46 @@ export const register = mutation({
       source: 'manual',
     });
     return vehicleId;
+  },
+});
+
+export const updateFuelPreferences = mutation({
+  args: {
+    id: v.id('vehicles'),
+    fuelCostMode: v.union(v.literal('manual_fillups'), v.literal('estimated')),
+    fuelEfficiencyLPer100Km: v.optional(v.number()),
+    fuelPriceCadPerLitre: v.optional(v.number()),
+    fuelPriceSource: v.optional(v.union(v.literal('manual'), v.literal('statcan'))),
+    fuelPriceUpdatedAt: v.optional(v.number()),
+    fuelPriceMarket: v.optional(v.string()),
+    fuelType: v.union(v.literal('regular'), v.literal('premium'), v.literal('diesel')),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx);
+    const vehicle = await ctx.db.get(args.id);
+    if (!vehicle) throw new Error('Vehicle not found');
+    if (vehicle.type !== 'gas') throw new Error('Fuel preferences are only supported for gas vehicles');
+    if (args.fuelCostMode === 'estimated') {
+      if (args.fuelEfficiencyLPer100Km === undefined || args.fuelEfficiencyLPer100Km <= 0) {
+        throw new Error('Fuel efficiency must be greater than 0');
+      }
+      if (args.fuelPriceCadPerLitre === undefined || args.fuelPriceCadPerLitre <= 0) {
+        throw new Error('Fuel price must be greater than 0');
+      }
+      if (!args.fuelPriceMarket) {
+        throw new Error('Fuel market is required for estimated mode');
+      }
+    }
+
+    await ctx.db.patch(args.id, {
+      fuelCostMode: args.fuelCostMode,
+      fuelEfficiencyLPer100Km: args.fuelEfficiencyLPer100Km,
+      fuelPriceCadPerLitre: args.fuelPriceCadPerLitre,
+      fuelPriceSource: args.fuelPriceSource,
+      fuelPriceUpdatedAt: args.fuelPriceUpdatedAt,
+      fuelPriceMarket: args.fuelPriceMarket,
+      fuelType: args.fuelType,
+    });
   },
 });
 

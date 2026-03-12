@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -30,19 +30,15 @@ export function OdometerHistory({
 }) {
   const [page, setPage] = useState(1);
 
-  if (readings.length === 0) {
-    return <p className="text-sm text-muted-foreground">No odometer history yet.</p>;
-  }
-
   const sorted = useMemo(() => [...readings].sort((a, b) => b.date - a.date), [readings]);
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const pageReadings = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
-  useEffect(() => {
-    setPage(1);
-  }, [readings.length]);
+  if (readings.length === 0) {
+    return <p className="text-sm text-muted-foreground">No odometer history yet.</p>;
+  }
 
   return (
     <div className="space-y-3">

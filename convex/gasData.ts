@@ -46,6 +46,12 @@ export const addFillUp = mutation({
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx);
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) throw new Error('Vehicle not found');
+    if (vehicle.type !== 'gas') throw new Error('Fill-ups are only supported for gas vehicles');
+    if ((vehicle.fuelCostMode ?? 'manual_fillups') === 'estimated') {
+      throw new Error('Manual fill-ups are disabled for this vehicle');
+    }
     const id = await ctx.db.insert('gasFillUps', args);
     await ctx.db.insert('odometerReadings', {
       vehicleId: args.vehicleId,
@@ -69,6 +75,11 @@ export const updateFillUp = mutation({
     await requireAuth(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error('Fill-up not found');
+    const vehicle = await ctx.db.get(existing.vehicleId);
+    if (!vehicle) throw new Error('Vehicle not found');
+    if ((vehicle.fuelCostMode ?? 'manual_fillups') === 'estimated') {
+      throw new Error('Manual fill-ups are disabled for this vehicle');
+    }
     await deleteMatchingOdometerReading(ctx, {
       vehicleId: existing.vehicleId,
       date: existing.date,

@@ -12,6 +12,13 @@ export default defineSchema({
     purchaseDate: v.number(), // Unix ms
     initialOdometer: v.number(), // km
     vin: v.optional(v.string()), // VIN for EV vehicles (Tessie)
+    fuelCostMode: v.optional(v.union(v.literal('manual_fillups'), v.literal('estimated'))),
+    fuelEfficiencyLPer100Km: v.optional(v.number()),
+    fuelPriceCadPerLitre: v.optional(v.number()),
+    fuelPriceSource: v.optional(v.union(v.literal('manual'), v.literal('statcan'))),
+    fuelPriceUpdatedAt: v.optional(v.number()),
+    fuelPriceMarket: v.optional(v.string()),
+    fuelType: v.optional(v.union(v.literal('regular'), v.literal('premium'), v.literal('diesel'))),
     removedAt: v.optional(v.number()), // soft delete
   }),
 
